@@ -1,103 +1,351 @@
+
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" class="h-full">
 <head>
-<meta charset="UTF-8">
-<title>HE Beam Calculator</title>
-<script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Δs</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.classList.add('dark');
+    }
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand:{50:'#eef2ff',100:'#e0e7ff',200:'#c7d2fe',300:'#a5b4fc',400:'#818cf8',500:'#6366f1',600:'#4f46e5',700:'#4338ca',800:'#3730a3',900:'#312e81'}
+          },
+          boxShadow:{soft:'0 8px 24px rgba(0,0,0,.06)'}
+        }
+      }
+    }
+  </script>
+  <style>
+    .range-wrap{position:relative}
+    .range-bubble{position:absolute;top:-34px;transform:translateX(-50%);padding:.15rem .45rem;font-size:.75rem;border-radius:.5rem;background:#111827;color:#fff;white-space:nowrap}
+    .grid-bg{background-image:linear-gradient(to right, rgba(148,163,184,.25) 1px, transparent 1px),linear-gradient(to bottom, rgba(148,163,184,.25) 1px, transparent 1px);background-size:24px 24px}
+  </style>
 </head>
-<body class="bg-gray-100 p-6">
-<div class="max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-lg">
-    <h1 class="text-2xl font-bold mb-4">HEA / HEB / HEM Rechner</h1>
+<body class="min-h-full bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100" dir="rtl">
+  <!-- Splash -->
+  <div id="splash" class="fixed inset-0 bg-white dark:bg-gray-900 flex items-center justify-center z-50">
+    <div class="max-w-xl mx-auto text-center p-8">
+      <h1 class="text-3xl font-extrabold mb-3 text-brand-700 dark:text-brand-300">Willkommen zur Winkelberechnung!</h1>
+      <p class="text-gray-600 dark:text-gray-300 mb-6">
+        Dieses Tool berechnet den Zusammenbauwinkel aus dem <b>Unterschied der Abtragslängen</b> (Δs) am oberen und unteren Flansch.
+      </p>
+      <button id="startBtn" class="px-6 py-3 rounded-xl bg-brand-600 text-white hover:bg-brand-700 shadow-soft transition">Starten</button>
+    </div>
+  </div>
 
-    <label class="block mb-2">Typ & Größe:</label>
-    <select id="beamType" class="border rounded p-2 w-full mb-4">
-        <option value="">-- Wählen --</option>
-        <option value="HEB 180">HEB 180</option>
-        <option value="HEB 200">HEB 200</option>
-        <option value="HEA 180">HEA 180</option>
-        <option value="HEM 180">HEM 180</option>
-    </select>
+  <!-- Header -->
+  <header class="sticky top-0 z-40 backdrop-blur bg-white/70 dark:bg-gray-900/70 border-b border-gray-200/60 dark:border-gray-800">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-brand-600 text-white grid place-items-center font-bold">Δs</div>
+        <div class="text-sm">
+          <div class="font-bold">Winkel aus Δs</div>
+          <div class="text-gray-500 dark:text-gray-400">klassische Vorschau</div>
+        </div>
+      </div>
+      <div>
+        <select id="lang" class="p-2 px-3 rounded-xl border bg-white dark:bg-gray-800 dark:border-gray-700 shadow-sm" oninput="applyLang()" onchange="applyLang()">
+          <option value="de" selected>Deutsch</option>
+          <option value="en">English</option>
+          <option value="ar">العربية</option>
+        </select>
+      </div>
+    </div>
+  </header>
 
-    <label class="block mb-2">Breite b (mm):</label>
-    <input type="number" id="bInput" class="border rounded p-2 w-full mb-4" placeholder="z.B. 180">
+  <main class="max-w-5xl mx-auto px-4 py-6">
+    <div class="mb-4 text-center">
+      <p id="subtitle" class="text-sm text-gray-600 dark:text-gray-300"></p>
+    </div>
 
-    <label class="block mb-2">Stegdicke t_w (mm):</label>
-    <input type="number" id="twInput" class="border rounded p-2 w-full mb-4" placeholder="z.B. 8.5">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- إعدادات -->
+      <section class="lg:col-span-1 space-y-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-soft p-4">
+          <label id="lblType" class="block font-semibold mb-1"></label>
+          <select id="secType" class="w-full p-2.5 border rounded-xl bg-white dark:bg-gray-900 dark:border-gray-700 shadow-sm" oninput="onType()" onchange="onType()">
+            <option value="HEA">HEA</option>
+            <option value="HEB" selected>HEB</option>
+            <option value="HEM">HEM</option>
+          </select>
+          <div id="helperType" class="text-xs text-gray-500 dark:text-gray-400 mt-1"></div>
+        </div>
 
-    <label class="block mb-2">Winkel (°):</label>
-    <input type="number" id="angleInput" class="border rounded p-2 w-full mb-4" placeholder="z.B. 16">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-soft p-4">
+          <label id="lblSize" class="block font-semibold mb-1"></label>
+          <select id="secSize" class="w-full p-2.5 border rounded-xl bg-white dark:bg-gray-900 dark:border-gray-700 shadow-sm" oninput="onSize()" onchange="onSize()"></select>
+          <div id="helperSize" class="text-xs text-gray-500 dark:text-gray-400 mt-1"></div>
+        </div>
 
-    <button onclick="calculate()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Berechnen</button>
-    <button onclick="learnSize()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 ml-2">🧠 Lernen</button>
+        <!-- بطاقات tw/tf/F -->
+        <div class="grid grid-cols-3 gap-3">
+          <div class="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-200 dark:border-gray-700 text-center">
+            <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 justify-center"><span class="inline-block w-2 h-2 rounded-full bg-brand-500"></span><span id="lblTw"></span></div>
+            <div id="twVal" class="text-lg font-extrabold mt-1">—</div>
+          </div>
+          <div class="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-200 dark:border-gray-700 text-center">
+            <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 justify-center"><span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span><span id="lblTf"></span></div>
+            <div id="tfVal" class="text-lg font-extrabold mt-1">—</div>
+          </div>
+          <div class="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-200 dark:border-gray-700 text-center">
+            <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 justify-center"><span class="inline-block w-2 h-2 rounded-full bg-fuchsia-500"></span><span id="lblF"></span></div>
+            <div id="FVal" class="text-lg font-extrabold mt-1">—</div>
+          </div>
+        </div>
 
-    <div id="result" class="mt-6 bg-gray-50 p-4 rounded-lg"></div>
-</div>
+        <!-- زاوية مستهدفة + تطبيقها على القص -->
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-soft p-4 space-y-3">
+          <label class="block font-semibold">θ زاوية مطلوبة (°)</label>
+          <input id="thetaTarget" type="number" min="0" max="90" step="0.01" value="16" class="w-full p-2.5 border rounded-xl bg-white dark:bg-gray-900 dark:border-gray-700"/>
+          <button id="applyAngleBtn" class="w-full py-2 rounded-xl bg-brand-600 text-white hover:bg-brand-700">احسب القص من الزاوية</button>
+          <p class="text-xs text-gray-500 dark:text-gray-400">يتم ضبط s_top = Δs و s_bottom = 0. يمكنك تعديل السلايدرز يدويًا بعد ذلك.</p>
+        </div>
 
-<script>
-// قاعدة بيانات افتراضية
-const beamData = {
-    "HEB 180": { b: 180, t_w: 8.5 },
-    "HEB 200": { b: 200, t_w: 9.0 },
-    "HEA 180": { b: 180, t_w: 7.5 },
-    "HEM 180": { b: 180, t_w: 10.0 }
-};
+        <!-- زر إعادة ضبط -->
+        <div class="flex items-center gap-3">
+          <button id="resetBtn" class="flex-1 py-2 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">إعادة ضبط</button>
+        </div>
+      </section>
 
-// تحميل القيم من LocalStorage إذا موجودة
-document.getElementById("beamType").addEventListener("change", function() {
-    const type = this.value;
-    let stored = localStorage.getItem("beamData_" + type);
-    if (stored) {
-        let data = JSON.parse(stored);
-        document.getElementById("bInput").value = data.b;
-        document.getElementById("twInput").value = data.t_w;
-    } else if (beamData[type]) {
-        document.getElementById("bInput").value = beamData[type].b;
-        document.getElementById("twInput").value = beamData[type].t_w;
+      <!-- التحكم والنتيجة -->
+      <section class="lg:col-span-2 space-y-4">
+        <!-- s_top -->
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-soft p-4">
+          <div class="flex items-center justify-between">
+            <label id="lblStop" class="font-semibold"></label>
+            <div class="text-sm text-gray-700 dark:text-gray-300"><span id="sTopVal">0.00</span> mm</div>
+          </div>
+          <div class="range-wrap mt-3">
+            <input id="sTop" type="range" min="0" max="100" step="0.1" value="0" class="w-full accent-brand-600" oninput="onSlider();updateBubble(this,'bubbleTop')" onchange="onSlider();updateBubble(this,'bubbleTop')"/>
+            <div id="bubbleTop" class="range-bubble">0.00</div>
+          </div>
+          <div class="text-xs text-gray-500 dark:text-gray-400 mt-2"><span id="lblRtop"></span> = <span id="rTop">—</span> mm</div>
+        </div>
+
+        <!-- s_bottom -->
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-soft p-4">
+          <div class="flex items-center justify-between">
+            <label id="lblSbot" class="font-semibold"></label>
+            <div class="text-sm text-gray-700 dark:text-gray-300"><span id="sBottomVal">0.00</span> mm</div>
+          </div>
+          <div class="range-wrap mt-3">
+            <input id="sBottom" type="range" min="0" max="100" step="0.1" value="0" class="w-full accent-brand-600" oninput="onSlider();updateBubble(this,'bubbleBot')" onchange="onSlider();updateBubble(this,'bubbleBot')"/>
+            <div id="bubbleBot" class="range-bubble">0.00</div>
+          </div>
+          <div class="text-xs text-gray-500 dark:text-gray-400 mt-2"><span id="lblRbot"></span> = <span id="rBottom">—</span> mm</div>
+        </div>
+
+        <!-- الزاوية الناتجة -->
+        <div class="bg-brand-50 dark:bg-brand-900/30 border border-brand-200 dark:border-brand-900 rounded-2xl p-4 text-center">
+          <div id="lblTheta" class="text-sm text-brand-700 dark:text-brand-300"></div>
+          <div id="thetaOut" class="text-5xl font-extrabold text-brand-700 dark:text-brand-300 mt-1">0.00°</div>
+          <div id="thetaNote" class="text-xs text-gray-600 dark:text-gray-300 mt-1"></div>
+        </div>
+
+        <!-- المعاينة -->
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-soft p-4">
+          <div class="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 grid-bg">
+            <svg id="view" width="100%" viewBox="0 0 900 330" class="block mx-auto"></svg>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    /* ==== i18n ==== */
+    const T = {
+      de:{title:"Winkel aus Δs (klassische Vorschau)",subtitle:"θ = 2 · atan(Δs / F), wobei Δs = s_top − s_bottom und F = (b − t_w)/2.",type:"Profiltyp",helperType:"EU-Standardprofile",size:"Größe",helperSize:"Wähle die Nenngröße",tw:"t_w",tf:"t_f",F:"F = (b − t_w)/2",stop:"Abtrag oberer Flansch s_top (mm)",sBot:"Abtrag unterer Flansch s_bottom (mm)",rTop:"Rest r_top",rBottom:"Rest r_bottom",theta:"Ergebniswinkel",thetaNote:"Wenn s_top = s_bottom, dann θ = 0°."},
+      en:{title:"Angle from Δs (classic preview)",subtitle:"θ = 2 · atan(Δs / F), where Δs = s_top − s_bottom and F = (b − t_w)/2.",type:"Section type",helperType:"EU standard profiles",size:"Size",helperSize:"Choose nominal size",tw:"t_w",tf:"t_f",F:"F = (b − t_w)/2",stop:"Top flange removal s_top (mm)",sBot:"Bottom flange removal s_bottom (mm)",rTop:"Remaining r_top",rBottom:"Remaining r_bottom",theta:"Resulting angle",thetaNote:"If s_top = s_bottom, then θ = 0°."},
+      ar:{title:"زاوية التجميع من Δس (المعاينة الكلاسيكية)",subtitle:"θ = 2 · atan(Δs / F)، حيث Δs = s_top − s_bottom و F = (b − t_w)/2.",type:"نوع المقطع",helperType:"مقاطع قياسية أوروبية",size:"المقاس",helperSize:"اختر المقاس الاسمي",tw:"t_w",tf:"t_f",F:"F = (b − t_w)/2",stop:"قص الجناح العلوي s_top (مم)",sBot:"قص الجناح السفلي s_bottom (مم)",rTop:"المتبقي r_top",rBottom:"المتبقي r_bottom",theta:"زاوية التجميع الناتجة",thetaNote:"إذا كان s_top = s_bottom فستكون θ = 0°."}
+    };
+
+    /* ==== EU sections ==== */
+    const SECTIONS = {
+      HEA:{100:{b:96,tw:5,tf:8},120:{b:114,tw:5,tf:8},140:{b:133,tw:5.5,tf:8.5},160:{b:152,tw:6,tf:9},180:{b:171,tw:6,tf:9.5},200:{b:190,tw:6.5,tf:10},220:{b:210,tw:7,tf:11},240:{b:230,tw:7.5,tf:12},260:{b:250,tw:8,tf:12.5},280:{b:270,tw:8.5,tf:13},300:{b:290,tw:9,tf:14},320:{b:300,tw:9.5,tf:15},340:{b:300,tw:9.5,tf:15.5},360:{b:300,tw:10,tf:16},400:{b:300,tw:11,tf:17}},
+      HEB:{100:{b:100,tw:6,tf:10},120:{b:120,tw:6.5,tf:11},140:{b:140,tw:7,tf:12},160:{b:160,tw:8,tf:13},180:{b:180,tw:8.5,tf:14},200:{b:200,tw:9,tf:15},220:{b:220,tw:9.5,tf:16},240:{b:240,tw:10,tf:17},260:{b:260,tw:10,tf:18},280:{b:280,tw:11,tf:19},300:{b:300,tw:12,tf:21},320:{b:300,tw:12,tf:22},340:{b:300,tw:12,tf:22.5},360:{b:300,tw:13,tf:23},400:{b:300,tw:14,tf:24}},
+      HEM:{100:{b:106,tw:12,tf:20},120:{b:126,tw:12.5,tf:21},140:{b:146,tw:13,tf:22},160:{b:166,tw:14,tf:23},180:{b:186,tw:14.5,tf:24},200:{b:206,tw:15,tf:25},220:{b:226,tw:16,tf:26},240:{b:248,tw:17,tf:27},260:{b:268,tw:17.5,tf:28},280:{b:288,tw:18,tf:29},300:{b:310,tw:19,tf:31},320:{b:310,tw:20,tf:32},340:{b:310,tw:21,tf:33},360:{b:310,tw:22,tf:35},400:{b:310,tw:23,tf:36}}
+    };
+
+    /* ==== helpers ==== */
+    const $ = id => document.getElementById(id);
+    const NS = "http://www.w3.org/2000/svg";
+    const langSel = $("lang"), svg = $("view");
+    const secType = $("secType"), secSize = $("secSize");
+    const twVal = $("twVal"), tfVal = $("tfVal"), FVal = $("FVal");
+    const sTop = $("sTop"), sBottom = $("sBottom");
+    const sTopVal = $("sTopVal"), sBottomVal = $("sBottomVal");
+    const rTop = $("rTop"), rBottom = $("rBottom");
+    const thetaOut = $("thetaOut");
+    const thetaTarget = $("thetaTarget");
+    const applyAngleBtn = $("applyAngleBtn");
+
+    $("startBtn").addEventListener("click",()=>$("splash").classList.add("hidden"));
+    $("resetBtn").addEventListener("click", ()=>{
+      sTop.value = 0; sBottom.value = 0;
+      updateBubble(sTop,'bubbleTop'); updateBubble(sBottom,'bubbleBot');
+      compute();
+    });
+
+    applyAngleBtn.addEventListener("click", ()=>{
+      // احسب Δs من الزاوية وطبّقها كقص علوي فقط
+      const sec = getCurrentSection();
+      if(!sec) return;
+      const b=sec.b, tw=sec.tw, F=(b - tw)/2;
+      const th = Math.max(0, Math.min(90, parseFloat(thetaTarget.value)||0)); // درجة
+      const deltaS = F * Math.tan((th/2) * Math.PI/180);
+      const sTopNew = Math.min(deltaS, F); // لا نتجاوز الحد الهندسي
+      sTop.value = sTopNew;
+      sBottom.value = 0;
+      updateBubble(sTop,'bubbleTop'); updateBubble(sBottom,'bubbleBot');
+      compute();
+    });
+
+    function applyLang(){
+      const L=T[langSel.value]||T.de;
+      $("subtitle").innerHTML=L.subtitle;
+      $("lblType").textContent=L.type; $("helperType").textContent=L.helperType;
+      $("lblSize").textContent=L.size; $("helperSize").textContent=L.helperSize;
+      $("lblTw").textContent=L.tw; $("lblTf").textContent=L.tf; $("lblF").textContent=L.F;
+      $("lblStop").textContent=L.stop; $("lblSbot").textContent=L.sBot;
+      $("lblRtop").textContent=L.rTop; $("lblRbot").textContent=L.rBottom;
+      $("lblTheta").textContent=L.theta; $("thetaNote").textContent=L.thetaNote;
     }
-});
 
-function calculate() {
-    let b = parseFloat(document.getElementById("bInput").value);
-    let t_w = parseFloat(document.getElementById("twInput").value);
-    let angle = parseFloat(document.getElementById("angleInput").value);
-
-    if (isNaN(b) || isNaN(t_w) || isNaN(angle)) {
-        document.getElementById("result").innerHTML = "<p class='text-red-500'>Bitte alle Felder ausfüllen!</p>";
-        return;
+    function getCurrentSection(){
+      const typ=secType.value, size=secSize.value;
+      const table=SECTIONS[typ]||{};
+      return table[size]||table[parseInt(size,10)];
     }
 
-    let F = (b - t_w) / 2;
-    let deltaS = F * Math.tan((angle / 2) * Math.PI / 180);
-    let s_top = deltaS;
-    let s_bottom = 0;
-    let r_top = b - s_top;
-    let r_bottom = b - s_bottom;
-
-    document.getElementById("result").innerHTML = `
-        <p><b>F:</b> ${F.toFixed(2)} mm</p>
-        <p><b>Δs:</b> ${deltaS.toFixed(2)} mm</p>
-        <p><b>Oberer Schnitt:</b> ${s_top.toFixed(2)} mm</p>
-        <p><b>Unterer Schnitt:</b> ${s_bottom.toFixed(2)} mm</p>
-        <p><b>Rest oben:</b> ${r_top.toFixed(2)} mm</p>
-        <p><b>Rest unten:</b> ${r_bottom.toFixed(2)} mm</p>
-    `;
-}
-
-function learnSize() {
-    const type = document.getElementById("beamType").value;
-    if (!type) {
-        alert("Bitte Typ auswählen!");
-        return;
+    function populateSizes(){
+      const typ=secType.value;
+      const sizes=Object.keys(SECTIONS[typ]||{}).map(n=>parseInt(n,10)).sort((a,b)=>a-b);
+      secSize.innerHTML="";
+      sizes.forEach((n,i)=>{
+        const o=document.createElement("option");
+        o.value=String(n); o.textContent=n;
+        if((typ==="HEB"&&n===180)||(typ!=="HEB"&&i===0)) o.selected=true;
+        secSize.appendChild(o);
+      });
+      applySection();
     }
-    let b = parseFloat(document.getElementById("bInput").value);
-    let t_w = parseFloat(document.getElementById("twInput").value);
-    if (isNaN(b) || isNaN(t_w)) {
-        alert("Bitte gültige Werte eingeben!");
-        return;
+
+    function applySection(){
+      const sec=getCurrentSection();
+      if(!sec){ twVal.textContent=tfVal.textContent=FVal.textContent="—"; return; }
+      const b=sec.b, tw=sec.tw, tf=sec.tf, F=(b-tw)/2;
+
+      twVal.textContent=tw.toFixed(2);
+      tfVal.textContent=tf.toFixed(2);
+      FVal.textContent=F.toFixed(2);
+
+      const maxR=Math.max(0,F);
+      sTop.max=maxR; sBottom.max=maxR;
+      if(+sTop.value>maxR) sTop.value=maxR;
+      if(+sBottom.value>maxR) sBottom.value=maxR;
+
+      updateBubble(sTop,'bubbleTop');
+      updateBubble(sBottom,'bubbleBot');
+      compute();
     }
-    localStorage.setItem("beamData_" + type, JSON.stringify({ b, t_w }));
-    alert("Gespeichert! (" + type + ")");
-}
-</script>
+
+    const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
+    const deg=r=>r*180/Math.PI;
+
+    function compute(){
+      const sec=getCurrentSection();
+      if(!sec){ thetaOut.textContent="0.00°"; return; }
+
+      const b=sec.b, tw=sec.tw, tf=sec.tf, F=(b-tw)/2;
+      const st=clamp(parseFloat(sTop.value)||0,0,Math.max(0,F));
+      const sb=clamp(parseFloat(sBottom.value)||0,0,Math.max(0,F));
+
+      sTopVal.textContent=st.toFixed(2);
+      sBottomVal.textContent=sb.toFixed(2);
+      rTop.textContent=(b-st).toFixed(2);
+      rBottom.textContent=(b-sb).toFixed(2);
+
+      let theta=0;
+      if(F>0){ const d=st-sb; theta=2*deg(Math.atan(d/F)); }
+      const sign=theta>0?'+':(theta<0?'−':'');
+      thetaOut.textContent=`${sign}${Math.abs(theta).toFixed(2)}°`;
+
+      drawPreview(b,tw,tf,st,sb);
+    }
+
+    function drawPreview(b,tw,tf,sTopCut,sBottomCut){
+      const svg=$("view"); svg.innerHTML='';
+      const W=900,gap=60,topY=70,flangeLenPx=300,webH=150;
+      const scale=b>0?flangeLenPx/b:1;
+      const tfPx=Math.max(8,tf*scale*0.6), twPx=Math.max(8,tw*scale*0.6);
+      const cx=W/2;
+      const L_left=cx-gap/2-flangeLenPx, L_right=cx-gap/2;
+      const R_left=cx+gap/2, R_right=cx+gap/2+flangeLenPx;
+      const L_webX=L_right-flangeLenPx/2-twPx/2, R_webX=R_left+flangeLenPx/2-twPx/2;
+
+      const CUT_RED='rgba(239,68,68,0.55)';
+      const BASE_GREEN='rgba(16,185,129,0.35)';
+      const STROKE='#94a3b8';
+
+      function rect(x,y,w,h,fill,stroke){const r=document.createElementNS(NS,'rect');r.setAttribute('x',x);r.setAttribute('y',y);r.setAttribute('width',w);r.setAttribute('height',h);if(fill)r.setAttribute('fill',fill);if(stroke){r.setAttribute('stroke',stroke);r.setAttribute('stroke-width','1');}svg.appendChild(r);}
+      function line(x1,y1,x2,y2,color,w,ds){const l=document.createElementNS(NS,'line');l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke',color||'#000');l.setAttribute('stroke-width',w||1.5);if(ds)l.setAttribute('stroke-dasharray',ds);svg.appendChild(l);}
+      function text(x,y,t,fs,fill,anc){const el=document.createElementNS(NS,'text');el.setAttribute('x',x);el.setAttribute('y',y);el.setAttribute('font-size',fs||'12');el.setAttribute('fill',fill||'#111');el.setAttribute('text-anchor',anc||'start');el.textContent=t;svg.appendChild(el);}
+
+      // الجسم الأساسي
+      rect(L_left, topY, flangeLenPx, tfPx, BASE_GREEN, STROKE);
+      rect(L_left, topY+webH+tfPx, flangeLenPx, tfPx, BASE_GREEN, STROKE);
+      rect(L_webX, topY, twPx, webH+tfPx, '#334155');
+
+      rect(R_left, topY, flangeLenPx, tfPx, BASE_GREEN, STROKE);
+      rect(R_left, topY+webH+tfPx, flangeLenPx, tfPx, BASE_GREEN, STROKE);
+      rect(R_webX, topY, twPx, webH+tfPx, '#334155');
+
+      // المقطوع
+      const sTopPx = Math.min(flangeLenPx, Math.max(0, sTopCut*scale));
+      const sBotPx = Math.min(flangeLenPx, Math.max(0, sBottomCut*scale));
+      if(sTopPx>0){ rect(L_right-sTopPx, topY, sTopPx, tfPx, CUT_RED); rect(R_left, topY, sTopPx, tfPx, CUT_RED); }
+      if(sBotPx>0){ rect(L_right-sBotPx, topY+webH+tfPx, sBotPx, tfPx, CUT_RED); rect(R_left, topY+webH+tfPx, sBotPx, tfPx, CUT_RED); }
+
+      // b + الزاوية
+      line(L_left, topY-16, L_right, topY-16, STROKE, 1.2);
+      text((L_left+L_right)/2, topY-20, `b = ${b} mm`, '11', '#334155', 'middle');
+      line(R_left, topY-16, R_right, topY-16, STROKE, 1.2);
+      text((R_left+R_right)/2, topY-20, `b = ${b} mm`, '11', '#334155', 'middle');
+
+      const thetaTxt = $("thetaOut").textContent.replace(/[^\d\.\+\-]/g,'');
+      line(L_right, topY-6, R_left, topY-6, '#ef4444', 2, '6 6');
+      text(450, topY + webH/2 + tfPx/2 + 18, `${thetaTxt}°`, '56', '#ef4444', 'middle');
+    }
+
+    function onType(){ populateSizes(); }
+    function onSize(){ applySection(); }
+    function onSlider(){ compute(); }
+
+    function updateBubble(input, id){
+      const bubble = $(id);
+      const val = parseFloat(input.value)||0;
+      bubble.textContent = val.toFixed(2);
+      const min = parseFloat(input.min)||0, max=parseFloat(input.max)||100;
+      const pct = (val - min) / (max - min);
+      const offset = input.getBoundingClientRect().width;
+      bubble.style.left = `${pct * offset}px`;
+    }
+
+    (function init(){
+      $("startBtn").addEventListener("click",()=>$("splash").classList.add("hidden"));
+      applyLang();
+      populateSizes();
+      updateBubble(sTop,'bubbleTop'); updateBubble(sBottom,'bubbleBot');
+      compute();
+    })();
+  </script>
 </body>
 </html>
