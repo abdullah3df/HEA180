@@ -15,88 +15,57 @@
   <script type="text/babel">
     const { useState } = React;
 
-    // أبعاد الرأس (تقريب منطقي ويمكن ضبطها لاحقًا بالأرقام الرسمية)
-    const DIM = {
-      F: 90,    // بروز الجناح من العمود إلى الحافة (طرف واحد) ≈ 90 مم
-      tf: 16,   // سماكة الجناح العلوي
-      tw: 26,   // سماكة العمود (web)
-      gap: 0,   // فجوة التجميع (0 = تلامس)
-      hWeb: 120 // ارتفاع العمود الظاهر في الرسم (شكلي للرأس فقط)
-    };
+    // أبعاد شكل الرأس (يمكن ضبطها لاحقًا)
+    const DIM = { F: 90, tf: 16, tw: 26, hWeb: 120 };
 
     function AssembledHead({ angle }) {
       const W = 420, H = 260;
-      const cx = W/2, yTop = 90; // خط أعلى الجناح العلوي
+      const cx = W/2, yTop = 90;
       const {F, tf, tw, hWeb} = DIM;
       const halfWeb = tw/2;
 
-      // زوايا القطع: كل جناح يميل بنصف زاوية التجميع
       const alpha = (angle/2) * Math.PI/180;
       const m = Math.tan(alpha);
 
-      // نقاط مرجعية
-      const leftWebInner  = cx - halfWeb;  // التقاء جناح يسار مع العمود
-      const rightWebInner = cx + halfWeb;  // التقاء جناح يمين مع العمود
-      const yBase = yTop + tf;             // أسفل الجناح العلوي
+      const leftWebInner  = cx - halfWeb;
+      const rightWebInner = cx + halfWeb;
+      const yBase = yTop + tf;
 
-      // حساب نقطة نهاية خط القطع على الجناح (نقص للميل الكبير)
-      // يسار: من x0=leftWebInner نحو اليسار مسافة F
-      const L_drop = m * F; // مقدار الهبوط عند الحافة اليسرى
+      const L_drop = m * F;
       const L_edge = (L_drop <= tf)
-        ? { x: leftWebInner - F, y: yTop + L_drop }           // يقطع عند الحافة
-        : { x: leftWebInner - (tf/m), y: yBase };             // يصل لأسفل الجناح قبل الحافة
+        ? { x: leftWebInner - F, y: yTop + L_drop }
+        : { x: leftWebInner - (tf/m), y: yBase };
 
-      // يمين: من x0=rightWebInner نحو اليمين مسافة F
       const R_drop = m * F;
       const R_edge = (R_drop <= tf)
         ? { x: rightWebInner + F, y: yTop + R_drop }
         : { x: rightWebInner + (tf/m), y: yBase };
 
-      // ألوان
       const cLeft  = { fill:"#6366f1", stroke:"#4338ca" };
       const cRight = { fill:"#60a5fa", stroke:"#2563eb" };
 
       return (
         <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="bg-white rounded-lg shadow-md">
-          {/* زاوية التجميع عند القمة */}
           <line x1={leftWebInner-40} y1={yTop} x2={rightWebInner+40} y2={yTop} stroke="#ef4444" strokeWidth="2" strokeDasharray="4"/>
           <text x={cx} y={yTop-10} fontSize="12" fill="#ef4444" textAnchor="middle">{angle}°</text>
 
-          {/* قطعة اليسار */}
-          {/* الجناح العلوي المقصوص */}
+          {/* يسار */}
           <polygon
-            points={`
-              ${leftWebInner - F},${yTop}
-              ${leftWebInner},${yTop}
-              ${L_edge.x},${L_edge.y}
-              ${leftWebInner - F},${yBase}
-            `}
+            points={`${leftWebInner - F},${yTop} ${leftWebInner},${yTop} ${L_edge.x},${L_edge.y} ${leftWebInner - F},${yBase}`}
             fill={cLeft.fill} stroke={cLeft.stroke} strokeWidth="2" opacity="0.95"
           />
-          {/* خط القطع اليسار لزيادة الوضوح */}
           <line x1={leftWebInner} y1={yTop} x2={L_edge.x} y2={L_edge.y} stroke="#111827" strokeWidth="2"/>
-
-          {/* العمود (نصف عمود يسار) */}
           <rect x={leftWebInner - (tw)} y={yTop} width={tw} height={hWeb} fill="#1e40af" opacity="0.75"/>
 
-          {/* قطعة اليمين */}
-          {/* الجناح العلوي المقصوص */}
+          {/* يمين */}
           <polygon
-            points={`
-              ${rightWebInner},${yTop}
-              ${rightWebInner + F},${yTop}
-              ${rightWebInner + F},${yBase}
-              ${R_edge.x},${R_edge.y}
-            `}
+            points={`${rightWebInner},${yTop} ${rightWebInner + F},${yTop} ${rightWebInner + F},${yBase} ${R_edge.x},${R_edge.y}`}
             fill={cRight.fill} stroke={cRight.stroke} strokeWidth="2" opacity="0.95"
           />
-          {/* خط القطع اليمين */}
           <line x1={rightWebInner} y1={yTop} x2={R_edge.x} y2={R_edge.y} stroke="#111827" strokeWidth="2"/>
-
-          {/* العمود (نصف عمود يمين) */}
           <rect x={rightWebInner} y={yTop} width={tw} height={hWeb} fill="#1e40af" opacity="0.75"/>
 
-          {/* (اختياري) أقدام سفلية شكلية للوضوح فقط */}
+          {/* أقدام سفلية اختيارية للوضوح */}
           <rect x={leftWebInner - F}  y={yTop + hWeb + 20} width={F} height={tf} fill={cLeft.fill}  opacity="0.9" stroke={cLeft.stroke} strokeWidth="2"/>
           <rect x={rightWebInner}     y={yTop + hWeb + 20} width={F} height={tf} fill={cRight.fill} opacity="0.9" stroke={cRight.stroke} strokeWidth="2"/>
         </svg>
@@ -105,12 +74,34 @@
 
     function App() {
       const [lang, setLang] = useState("de");
-      const [angle, setAngle] = useState(16); // مثال مثل الصورة
+      const [angle, setAngle] = useState(16);
+      const [show, setShow]   = useState(false); // إظهار/إخفاء صفحة العرض
 
-      const t = {
-        de: { hello:"Willkommen bei der Winkelrechner", title:"H-Träger Schneide- und Verbindungsrechner (Kopfansicht)", angle:"Verbindungswinkel (°):", final:"Endform nach dem Zusammenbau" },
-        ar: { hello:"مرحبًا بكم في حاسبة الزاوية", title:"حاسبة قص وتجميع جناحي H (رأس المقطع)", angle:"زاوية التجميع (°):", final:"الشكل النهائي بعد التجميع" },
-        en: { hello:"Welcome to the Angle Calculator", title:"H-Beam Cut & Join (Head View)", angle:"Joint Angle (°):", final:"Final shape after assembly" },
+      const T = {
+        de: {
+          hello:"Willkommen bei der Winkelrechner",
+          title:"H-Träger Schneide- und Verbindungsrechner (Kopfansicht)",
+          angle:"Verbindungswinkel (°):",
+          final:"Endform nach dem Zusammenbau",
+          show:"Form anzeigen",
+          hide:"Form ausblenden"
+        },
+        ar: {
+          hello:"مرحبًا بكم في حاسبة الزاوية",
+          title:"حاسبة قص وتجميع جناحي H (رأس المقطع)",
+          angle:"زاوية التجميع (°):",
+          final:"الشكل النهائي بعد التجميع",
+          show:"إظهار الشكل",
+          hide:"إخفاء الشكل"
+        },
+        en: {
+          hello:"Welcome to the Angle Calculator",
+          title:"H-Beam Cut & Join (Head View)",
+          angle:"Joint Angle (°):",
+          final:"Final shape after assembly",
+          show:"Show shape",
+          hide:"Hide shape"
+        }
       }[lang];
 
       const dir = lang==="ar" ? "rtl" : "ltr";
@@ -119,12 +110,12 @@
       return (
         <div dir={dir} className={`min-h-screen p-6 ${align}`}>
           <div className="text-center bg-blue-100 text-blue-800 py-3 rounded-lg mb-4 text-lg font-semibold">
-            {t.hello}
+            {T.hello}
           </div>
 
           <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-6">
-            <div className="flex justify-between mb-4">
-              <h1 className="text-xl font-bold">{t.title}</h1>
+            <div className="flex justify-between items-center mb-4">
+              <h1 className="text-xl font-bold">{T.title}</h1>
               <select value={lang} onChange={e=>setLang(e.target.value)} className="p-2 border rounded">
                 <option value="de">Deutsch</option>
                 <option value="ar">العربية</option>
@@ -132,14 +123,42 @@
               </select>
             </div>
 
-            <label className="block font-semibold mb-2">{t.angle}</label>
-            <input type="range" min="5" max="60" value={angle} onChange={e=>setAngle(parseInt(e.target.value))} className="w-full"/>
-            <div className="text-center font-bold mt-2">{angle}°</div>
+            {/* زر إظهار/إخفاء صفحة العرض */}
+            {!show ? (
+              <div className="text-center">
+                <button
+                  className="px-5 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                  onClick={()=>setShow(true)}
+                >
+                  {T.show}
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-semibold mb-2">{T.angle}</label>
+                    <input type="range" min="5" max="60" value={angle}
+                           onChange={e=>setAngle(parseInt(e.target.value))}
+                           className="w-full"/>
+                    <div className="text-center font-bold mt-2">{angle}°</div>
+                  </div>
+                  <div className="flex items-end justify-center md:justify-end">
+                    <button
+                      className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                      onClick={()=>setShow(false)}
+                    >
+                      {T.hide}
+                    </button>
+                  </div>
+                </div>
 
-            <div className="mt-6">
-              <h2 className="text-lg font-bold mb-3 text-center">{t.final}</h2>
-              <AssembledHead angle={angle}/>
-            </div>
+                <div className="mt-6">
+                  <h2 className="text-lg font-bold mb-3 text-center">{T.final}</h2>
+                  <AssembledHead angle={angle}/>
+                </div>
+              </>
+            )}
           </div>
         </div>
       );
@@ -147,6 +166,10 @@
 
     const root = ReactDOM.createRoot(document.getElementById("root"));
     root.render(<App/>);
+  </script>
+</body>
+</html>    root.render(<App/>);
+  
   </script>
 </body>
 </html>
