@@ -15,56 +15,47 @@
   <script type="text/babel">
     const { useState, useMemo } = React;
 
-    // أبعاد تقريبية للرسم (رأس H فقط) — يمكنك تعديلها لاحقًا حسب جدولك
+    // أبعاد مبسّطة للرسم (رأس H فقط)
     const SECTION = {
       b: 180,   // عرض الجناح الكلي (mm)
-      tf: 16,   // سماكة الجناح (العلوي/السفلي) (mm) — للرسم فقط
-      tw: 10,   // سماكة العمود (web) (mm) — للرسم فقط
-      hWeb: 120 // طول العمود الظاهر في الرسم (شكل توضيحي)
+      tf: 16,   // سماكة الجناح (mm)
+      tw: 10,   // سماكة العمود (web) (mm)
+      hWeb: 120 // طول العمود الظاهر للسكتش
     };
 
-    // SVG Beam Head (رأس مقطع H مبسّط)
-    function BeamHead({ side="left", cut=15 }) {
-      // side: "left" = إزالة شريط من طرف الجناح العلوي الأيسر
-      //       "right" = إزالة شريط من طرف الجناح العلوي الأيمن
+    // رسم قطعة واحدة: إزالة شريط مستقيم من طرف واحد من الجناح العلوي فقط
+    function BeamHead({ side="left", cut=15, xShift=0, label="" }) {
       const W = 420, H = 260;
-      const cx = W/2, yTop = 80;      // مستوى الجناح العلوي
+      const cx = W/2 + xShift, yTop = 80;
       const { b, tf, tw, hWeb } = SECTION;
 
-      const half = b/2;
-      const halfWeb = tw/2;
-
-      // مواضع الحواف بالنسبة لمركز العمود
+      const half = b/2, halfWeb = tw/2;
       const leftEdge  = cx - half;
       const rightEdge = cx + half;
-
       const webLeft  = cx - halfWeb;
       const webRight = cx + halfWeb;
 
-      const topY1 = yTop;         // أعلى الجناح العلوي
-      const topY2 = yTop + tf;    // أسفل الجناح العلوي
-      const botY1 = yTop + hWeb;  // أعلى الجناح السفلي
-      const botY2 = botY1 + tf;   // أسفل الجناح السفلي
+      const topY1 = yTop, topY2 = yTop + tf;
+      const botY1 = yTop + hWeb, botY2 = botY1 + tf;
 
-      // القطع: شريط مستطيل من طرف واحد من الجناح العلوي فقط
       const cutLeft  = side === "left"  ? cut : 0;
       const cutRight = side === "right" ? cut : 0;
 
-      // حدود الجناح العلوي بعد إزالة الشريط
-      const topLeftX  = leftEdge  + cutLeft;   // إذا قطعنا من اليسار نزح اليمين
-      const topRightX = rightEdge - cutRight;  // إذا قطعنا من اليمين نزح اليسار
+      const topLeftX  = leftEdge  + cutLeft;
+      const topRightX = rightEdge - cutRight;
 
-      // ألوان
-      const fillTop = side === "left" ? "#6366f1" : "#60a5fa";
-      const strokeTop = side === "left" ? "#4338ca" : "#2563eb";
+      const fillTop  = side === "left" ? "#6366f1" : "#60a5fa";
+      const strokeTop= side === "left" ? "#4338ca" : "#2563eb";
 
       return (
         <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="bg-white rounded-lg shadow-md">
-          {/* الجناح العلوي بعد القص (مستطيل ناقص من طرف واحد) */}
-          <rect x={topLeftX} y={topY1} width={topRightX - topLeftX} height={tf}
+          {label && <text x={W/2} y={24} fontSize="12" fill="#334155" textAnchor="middle">{label}</text>}
+
+          {/* الجناح العلوي بعد القص */}
+          <rect x={topLeftX} y={topY1} width={Math.max(0, topRightX - topLeftX)} height={tf}
                 fill={fillTop} stroke={strokeTop} strokeWidth="2"/>
 
-          {/* المستطيل المزال (للتوضيح فقط) */}
+          {/* المستطيل المزال (للإيضاح) */}
           {cutLeft > 0 && (
             <rect x={leftEdge} y={topY1} width={cutLeft} height={tf}
                   fill="none" stroke="#ef4444" strokeDasharray="4 3" />
@@ -74,18 +65,17 @@
                   fill="none" stroke="#ef4444" strokeDasharray="4 3" />
           )}
 
-          {/* العمود (web) كامل غير مقطوع */}
+          {/* العمود (كامل) */}
           <rect x={webLeft} y={topY1} width={tw} height={hWeb}
                 fill="#1e40af" opacity="0.75"/>
 
-          {/* الجناح السفلي كامل غير مقطوع */}
+          {/* الجناح السفلي (كامل) */}
           <rect x={leftEdge} y={botY1} width={b} height={tf}
                 fill="#94a3b8" stroke="#64748b" strokeWidth="1"/>
 
-          {/* حواف وإرشادات */}
-          <line x1={cx - b/2} y1={topY1-14} x2={cx + b/2} y2={topY1-14} stroke="#999"/>
+          {/* أبعاد إرشادية */}
+          <line x1={leftEdge} y1={topY1-14} x2={rightEdge} y2={topY1-14} stroke="#999"/>
           <text x={cx} y={topY1-18} fontSize="10" fill="#666" textAnchor="middle">b = {b} mm</text>
-
           <text x={leftEdge-6} y={topY1+tf/2+3} fontSize="10" fill="#ef4444" textAnchor="end">
             {cutLeft > 0 ? `- ${cutLeft} mm` : ""}
           </text>
@@ -96,45 +86,100 @@
       );
     }
 
+    // رسم التجميع داخل SVG واحد: قطعتان ملتصقتان من جهة القطع
+    function AssembledCombined({ cut=15 }) {
+      const W = 640, H = 260;      // نوسع العرض للقطعتين
+      const yTop = 80;
+      const { b, tf, tw, hWeb } = SECTION;
+
+      const halfWeb = tw/2;
+
+      // نضع seam في منتصف اللوحة: يسارها قطعة cut يمين، يمينها قطعة cut يسار
+      const cx = W/2;
+      // القطعة اليسرى: قص من اليمين
+      const left_leftEdge  = cx - b + cut;         // بعد إزالة الشريط من يمينها، يلامس الحد عند cx
+      const left_rightEdge = cx;                   // تتوقف عند خط التجميع
+      const left_webRight  = left_rightEdge - (tw/2);
+      const left_webLeft   = left_webRight - tw;
+
+      // القطعة اليمنى: قص من اليسار
+      const right_leftEdge  = cx;                  // تبدأ من خط التجميع
+      const right_rightEdge = cx + b - cut;        // بعد إزالة الشريط من يسارها
+      const right_webLeft   = right_leftEdge + (tw/2);
+      const right_webRight  = right_webLeft + tw;
+
+      const botY1 = yTop + hWeb;
+      const fillA = "#6366f1", strokeA = "#4338ca";
+      const fillB = "#60a5fa", strokeB = "#2563eb";
+
+      return (
+        <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="bg-white rounded-lg shadow-md">
+          {/* خط التجميع (يلتقي الشريط المزال من الطرفين هنا) */}
+          <line x1={cx} y1={yTop-10} x2={cx} y2={yTop+tf+10} stroke="#ef4444" strokeDasharray="4 3"/>
+          <text x={cx} y={yTop-14} fontSize="11" fill="#ef4444" textAnchor="middle">Seam</text>
+
+          {/* القطعة اليسرى (قص من اليمين) */}
+          <rect x={left_leftEdge} y={yTop} width={left_rightEdge-left_leftEdge} height={tf}
+                fill={fillA} stroke={strokeA} strokeWidth="2"/>
+          <rect x={left_webLeft} y={yTop} width={tw} height={hWeb}
+                fill="#1e40af" opacity="0.75"/>
+          <rect x={left_leftEdge} y={botY1} width={b-cut} height={tf}
+                fill={fillA} opacity="0.9" stroke={strokeA} strokeWidth="2"/>
+
+          {/* القطعة اليمنى (قص من اليسار) */}
+          <rect x={right_leftEdge} y={yTop} width={right_rightEdge-right_leftEdge} height={tf}
+                fill={fillB} stroke={strokeB} strokeWidth="2"/>
+          <rect x={right_webLeft} y={yTop} width={tw} height={hWeb}
+                fill="#1e40af" opacity="0.75"/>
+          <rect x={right_leftEdge+cut} y={botY1} width={b-cut} height={tf}
+                fill={fillB} opacity="0.9" stroke={strokeB} strokeWidth="2"/>
+
+          {/* تظليل المستطيلات المزالة (اختياري توضيحي) */}
+          <rect x={cx - cut} y={yTop} width={cut} height={tf} fill="none" stroke="#ef4444" strokeDasharray="4 3"/>
+          <rect x={cx} y={yTop} width={cut} height={tf} fill="none" stroke="#ef4444" strokeDasharray="4 3"/>
+        </svg>
+      );
+    }
+
     function App(){
       const [lang, setLang] = useState("de");
-      const [show, setShow] = useState(false);   // لا نعرض إلا عند الطلب
-      const [angle, setAngle] = useState(16);    // زاوية التجميع (عرض فقط)
-      const [cut, setCut]     = useState(15);    // عرض الشريط المزال من الجناح العلوي (mm)
+      const [show, setShow] = useState(false);
+      const [angle, setAngle] = useState(16); // للعرض فقط
+      const [cut, setCut]     = useState(15); // عرض الشريط المزال (mm)
 
       const T = useMemo(()=>({
         de: {
           hello: "Willkommen bei der Winkelrechner",
-          title: "Kopfansicht – Nur oberer Flansch schneiden (Streifen)",
+          title: "Kopfansicht – Streifenabtrag nur am oberen Flansch",
           show: "Form anzeigen",
           hide: "Form ausblenden",
           angle: "Verbindungswinkel (°): (Anzeige)",
-          cut: "Breite des entfernten Streifens im oberen Flansch (mm):",
-          beforeA: "Stück A – Schnitt links (oberer Flansch nur)",
-          beforeB: "Stück B – Schnitt rechts (oberer Flansch nur)",
-          after: "Zusammenbau – Ansicht schematisch (Winkel nur zur Anzeige)"
+          cut: "Breite des entfernten Streifens am oberen Flansch (mm):",
+          beforeA: "Stück A — Schnitt links (nur oberer Flansch)",
+          beforeB: "Stück B — Schnitt rechts (nur oberer Flansch)",
+          after: "Nach dem Zusammenbau — zwei Stücke Seite an Seite (ohne Spalt)"
         },
         ar: {
           hello: "مرحبًا بكم في حاسبة الزاوية",
-          title: "رأس المقطع – قطع شريط من الجناح العلوي فقط",
+          title: "رأس المقطع — إزالة شريط من الجناح العلوي فقط",
           show: "إظهار الشكل",
           hide: "إخفاء الشكل",
           angle: "زاوية التجميع (°): (للعرض فقط)",
           cut: "عرض الشريط المزال من الجناح العلوي (مم):",
           beforeA: "القطعة A — قطع من الطرف الأيسر (الجناح العلوي فقط)",
           beforeB: "القطعة B — قطع من الطرف الأيمن (الجناح العلوي فقط)",
-          after: "بعد التجميع — عرض تخطيطي (الزاوية للعرض فقط)"
+          after: "بعد التجميع — قطعتان جنب بعض بلا فراغ"
         },
         en: {
           hello: "Welcome to the Angle Calculator",
-          title: "Head View – Remove a rectangular strip from top flange only",
+          title: "Head view — remove rectangular strip from top flange only",
           show: "Show shape",
           hide: "Hide shape",
           angle: "Joint angle (°): (display only)",
           cut: "Removed strip width on top flange (mm):",
-          beforeA: "Piece A — cut on left side (top flange only)",
-          beforeB: "Piece B — cut on right side (top flange only)",
-          after: "After assembly — schematic (angle display only)"
+          beforeA: "Piece A — cut on left (top flange only)",
+          beforeB: "Piece B — cut on right (top flange only)",
+          after: "After assembly — two pieces side by side, touching"
         }
       }[lang]),[lang]);
 
@@ -147,7 +192,7 @@
             {T.hello}
           </div>
 
-          <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-lg p-6">
+          <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-6">
             <div className="flex justify-between items-center mb-4">
               <h1 className="text-xl font-bold">{T.title}</h1>
               <select value={lang} onChange={e=>setLang(e.target.value)} className="p-2 border rounded">
@@ -180,7 +225,7 @@
                            onChange={e=>setCut(parseInt(e.target.value)||0)}
                            className="w-full p-2 border rounded"/>
                     <div className="text-xs text-gray-500 mt-1">
-                      (لا نلمس العمود ولا الجناح السفلي — إزالة شريط مستقيم من طرف الجناح العلوي فقط)
+                      (القص: إزالة مستطيل من طرف الجناح العلوي فقط — العمود والجناح السفلي بدون تغيير)
                     </div>
                   </div>
                 </div>
@@ -188,19 +233,15 @@
                 <div className="mt-6 space-y-6">
                   <div>
                     <h3 className="font-semibold mb-2">{T.beforeA}</h3>
-                    <BeamHead side="left" cut={cut}/>
+                    <BeamHead side="left" cut={cut} label="A"/>
                   </div>
                   <div>
                     <h3 className="font-semibold mb-2">{T.beforeB}</h3>
-                    <BeamHead side="right" cut={cut}/>
+                    <BeamHead side="right" cut={cut} label="B"/>
                   </div>
                   <div>
-                    <h3 className="font-semibold mb-2">{T.after} — {angle}°</h3>
-                    {/* للعرض فقط: نظهر القطعتين متقابلتين (لا نميل السماكات، لأن القص مستطيل) */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      <BeamHead side="left" cut={cut}/>
-                      <BeamHead side="right" cut={cut}/>
-                    </div>
+                    <h3 className="font-semibold mb-2">{T.after}</h3>
+                    <AssembledCombined cut={cut}/>
                   </div>
 
                   <div className="text-center mt-4">
@@ -221,4 +262,4 @@
     root.render(<App/>);
   </script>
 </body>
-</html>
+</html
