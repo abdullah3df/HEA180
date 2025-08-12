@@ -110,7 +110,7 @@
       ar:{title:"زاوية التجميع من Δس (المعاينة الكلاسيكية)",subtitle:"θ = 2 · atan(Δs / F)، حيث Δs = s_top − s_bottom و F = (b − t_w)/2.",type:"نوع المقطع",helperType:"مقاطع قياسية أوروبية",size:"المقاس",helperSize:"اختر المقاس الاسمي",tw:"t_w",tf:"t_f",F:"F = (b − t_w)/2",stop:"قص الجناح العلوي s_top (مم)",sBot:"قص الجناح السفلي s_bottom (مم)",rTop:"المتبقي r_top",rBottom:"المتبقي r_bottom",theta:"زاوية التجميع الناتجة",thetaNote:"إذا كان s_top = s_bottom فستكون θ = 0°."}
     };
 
-    // ===== EU tables (مختارة شائعة؛ يمكن التوسعة) =====
+    // ===== EU tables =====
     const SECTIONS = {
       HEA:{100:{b:96,tw:5,tf:8},120:{b:114,tw:5,tf:8},140:{b:133,tw:5.5,tf:8.5},160:{b:152,tw:6,tf:9},180:{b:171,tw:6,tf:9.5},200:{b:190,tw:6.5,tf:10},220:{b:210,tw:7,tf:11},240:{b:230,tw:7.5,tf:12},260:{b:250,tw:8,tf:12.5},280:{b:270,tw:8.5,tf:13},300:{b:290,tw:9,tf:14},320:{b:300,tw:9.5,tf:15},340:{b:300,tw:9.5,tf:15.5},360:{b:300,tw:10,tf:16},400:{b:300,tw:11,tf:17}},
       HEB:{100:{b:100,tw:6,tf:10},120:{b:120,tw:6.5,tf:11},140:{b:140,tw:7,tf:12},160:{b:160,tw:8,tf:13},180:{b:180,tw:8.5,tf:14},200:{b:200,tw:9,tf:15},220:{b:220,tw:9.5,tf:16},240:{b:240,tw:10,tf:17},260:{b:260,tw:10,tf:18},280:{b:280,tw:11,tf:19},300:{b:300,tw:12,tf:21},320:{b:300,tw:12,tf:22},340:{b:300,tw:12,tf:22.5},360:{b:300,tw:13,tf:23},400:{b:300,tw:14,tf:24}},
@@ -139,27 +139,28 @@
       $("lblTheta").textContent=L.theta; $("thetaNote").textContent=L.thetaNote;
     }
 
-    // تعبئة المقاسات
+    // تعبئة المقاسات + تحديث فوري
     function populateSizes(){
       const typ=secType.value;
       const sizes=Object.keys(SECTIONS[typ]||{}).map(n=>parseInt(n,10)).sort((a,b)=>a-b);
       secSize.innerHTML="";
       sizes.forEach((n,i)=>{
         const o=document.createElement("option");
-        o.value=n; o.textContent=n;
+        o.value=String(n);
+        o.textContent=n;
         if((typ==="HEB"&&n===180)||(typ!=="HEB"&&i===0)) o.selected=true;
         secSize.appendChild(o);
       });
-      applySection();
+      applySection(); // مهم
     }
 
     function applySection(){
       const typ=secType.value, size=secSize.value;
-      const sec=(SECTIONS[typ]||{})[size];
+      const table=SECTIONS[typ]||{};
+      const sec=table[size]||table[parseInt(size,10)];
       if(!sec){ twVal.textContent=tfVal.textContent=FVal.textContent="—"; return; }
 
-      const b=sec.b, tw=sec.tw, tf=sec.tf;
-      const F=(b-tw)/2;
+      const b=sec.b, tw=sec.tw, tf=sec.tf, F=(b-tw)/2;
       twVal.textContent=tw.toFixed(2);
       tfVal.textContent=tf.toFixed(2);
       FVal.textContent=F.toFixed(2);
@@ -177,7 +178,7 @@
 
     function compute(){
       const typ=secType.value, size=secSize.value;
-      const sec=(SECTIONS[typ]||{})[size];
+      const sec=(SECTIONS[typ]||{})[size]||(SECTIONS[typ]||{})[parseInt(size,10)];
       if(!sec){ thetaOut.textContent="0.00°"; return; }
 
       const b=sec.b, tw=sec.tw, tf=sec.tf, F=(b-tw)/2;
@@ -197,7 +198,7 @@
       drawPreview(b,tw,tf,st,sb);
     }
 
-    // ===== Preview =====
+    // Preview
     function drawPreview(b,tw,tf,sTopCut,sBottomCut){
       svg.innerHTML='';
       const W=900,gap=60,topY=70,flangeLenPx=300,webH=150;
@@ -231,7 +232,7 @@
       if(sTopPx>0){ rect(L_right-sTopPx, topY, sTopPx, tfPx, CUT_RED); rect(R_left, topY, sTopPx, tfPx, CUT_RED); }
       if(sBotPx>0){ rect(L_right-sBotPx, topY+webH+tfPx, sBotPx, tfPx, CUT_RED); rect(R_left, topY+webH+tfPx, sBotPx, tfPx, CUT_RED); }
 
-      // b لكل قطعة + الزاوية
+      // b + الزاوية
       line(L_left, topY-16, L_right, topY-16, STROKE, 1.2);
       text((L_left+L_right)/2, topY-20, `b = ${b} mm`, '11', '#334155', 'middle');
       line(R_left, topY-16, R_right, topY-16, STROKE, 1.2);
@@ -242,19 +243,23 @@
       text(450, topY + webH/2 + tfPx/2 + 18, `${thetaTxt}°`, '56', '#ef4444', 'middle');
     }
 
-    // ===== Init & events =====
+    // أحداث + بدء
     $("startBtn").addEventListener("click",()=>$("splash").classList.add("hidden"));
     langSel.addEventListener("change", applyLang);
 
+    function wireEvents(){
+      ["change","input"].forEach(ev=>{
+        secType.addEventListener(ev, populateSizes);
+        secSize.addEventListener(ev, applySection);
+        sTop.addEventListener(ev, compute);
+        sBottom.addEventListener(ev, compute);
+      });
+    }
+
     function init(){
       applyLang();
-      // تعبئة أولية
-      const evt = ['input','change'];
-      secType.addEventListener('change', populateSizes);
-      secSize.addEventListener('change', applySection);
-      evt.forEach(e=>{ sTop.addEventListener(e, compute); sBottom.addEventListener(e, compute); });
-
-      populateSizes();  // يختار مقاس افتراضي وينادي applySection
+      wireEvents();
+      populateSizes(); // يختار مقاس افتراضي ويُحدّث البطاقات
     }
     init();
   </script>
