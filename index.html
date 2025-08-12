@@ -15,7 +15,7 @@
   <script type="text/babel">
     const { useState, useMemo } = React;
 
-    // أبعاد مبسّطة للرسم (رأس H فقط)
+    // أبعاد مبسّطة للرسم (رأس H فقط) — عدّلها لو تحتاج
     const SECTION = {
       b: 180,   // عرض الجناح الكلي (mm)
       tf: 16,   // سماكة الجناح (mm)
@@ -24,9 +24,9 @@
     };
 
     // رسم قطعة واحدة: إزالة شريط مستقيم من طرف واحد من الجناح العلوي فقط
-    function BeamHead({ side="left", cut=15, xShift=0, label="" }) {
+    function BeamHead({ side="left", cut=15, label="" }) {
       const W = 420, H = 260;
-      const cx = W/2 + xShift, yTop = 80;
+      const cx = W/2, yTop = 80;
       const { b, tf, tw, hWeb } = SECTION;
 
       const half = b/2, halfWeb = tw/2;
@@ -51,11 +51,11 @@
         <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="bg-white rounded-lg shadow-md">
           {label && <text x={W/2} y={24} fontSize="12" fill="#334155" textAnchor="middle">{label}</text>}
 
-          {/* الجناح العلوي بعد القص */}
+          {/* الجناح العلوي بعد القص (مستطيل ناقص من طرف واحد) */}
           <rect x={topLeftX} y={topY1} width={Math.max(0, topRightX - topLeftX)} height={tf}
                 fill={fillTop} stroke={strokeTop} strokeWidth="2"/>
 
-          {/* المستطيل المزال (للإيضاح) */}
+          {/* المستطيل المزال (إطار أحمر متقطّع للتوضيح فقط) */}
           {cutLeft > 0 && (
             <rect x={leftEdge} y={topY1} width={cutLeft} height={tf}
                   fill="none" stroke="#ef4444" strokeDasharray="4 3" />
@@ -65,11 +65,11 @@
                   fill="none" stroke="#ef4444" strokeDasharray="4 3" />
           )}
 
-          {/* العمود (كامل) */}
+          {/* العمود (web) كامل غير مقطوع */}
           <rect x={webLeft} y={topY1} width={tw} height={hWeb}
                 fill="#1e40af" opacity="0.75"/>
 
-          {/* الجناح السفلي (كامل) */}
+          {/* الجناح السفلي كامل غير مقطوع */}
           <rect x={leftEdge} y={botY1} width={b} height={tf}
                 fill="#94a3b8" stroke="#64748b" strokeWidth="1"/>
 
@@ -82,61 +82,6 @@
           <text x={rightEdge+6} y={topY1+tf/2+3} fontSize="10" fill="#ef4444">
             {cutRight > 0 ? `- ${cutRight} mm` : ""}
           </text>
-        </svg>
-      );
-    }
-
-    // رسم التجميع داخل SVG واحد: قطعتان ملتصقتان من جهة القطع
-    function AssembledCombined({ cut=15 }) {
-      const W = 640, H = 260;      // نوسع العرض للقطعتين
-      const yTop = 80;
-      const { b, tf, tw, hWeb } = SECTION;
-
-      const halfWeb = tw/2;
-
-      // نضع seam في منتصف اللوحة: يسارها قطعة cut يمين، يمينها قطعة cut يسار
-      const cx = W/2;
-      // القطعة اليسرى: قص من اليمين
-      const left_leftEdge  = cx - b + cut;         // بعد إزالة الشريط من يمينها، يلامس الحد عند cx
-      const left_rightEdge = cx;                   // تتوقف عند خط التجميع
-      const left_webRight  = left_rightEdge - (tw/2);
-      const left_webLeft   = left_webRight - tw;
-
-      // القطعة اليمنى: قص من اليسار
-      const right_leftEdge  = cx;                  // تبدأ من خط التجميع
-      const right_rightEdge = cx + b - cut;        // بعد إزالة الشريط من يسارها
-      const right_webLeft   = right_leftEdge + (tw/2);
-      const right_webRight  = right_webLeft + tw;
-
-      const botY1 = yTop + hWeb;
-      const fillA = "#6366f1", strokeA = "#4338ca";
-      const fillB = "#60a5fa", strokeB = "#2563eb";
-
-      return (
-        <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="bg-white rounded-lg shadow-md">
-          {/* خط التجميع (يلتقي الشريط المزال من الطرفين هنا) */}
-          <line x1={cx} y1={yTop-10} x2={cx} y2={yTop+tf+10} stroke="#ef4444" strokeDasharray="4 3"/>
-          <text x={cx} y={yTop-14} fontSize="11" fill="#ef4444" textAnchor="middle">Seam</text>
-
-          {/* القطعة اليسرى (قص من اليمين) */}
-          <rect x={left_leftEdge} y={yTop} width={left_rightEdge-left_leftEdge} height={tf}
-                fill={fillA} stroke={strokeA} strokeWidth="2"/>
-          <rect x={left_webLeft} y={yTop} width={tw} height={hWeb}
-                fill="#1e40af" opacity="0.75"/>
-          <rect x={left_leftEdge} y={botY1} width={b-cut} height={tf}
-                fill={fillA} opacity="0.9" stroke={strokeA} strokeWidth="2"/>
-
-          {/* القطعة اليمنى (قص من اليسار) */}
-          <rect x={right_leftEdge} y={yTop} width={right_rightEdge-right_leftEdge} height={tf}
-                fill={fillB} stroke={strokeB} strokeWidth="2"/>
-          <rect x={right_webLeft} y={yTop} width={tw} height={hWeb}
-                fill="#1e40af" opacity="0.75"/>
-          <rect x={right_leftEdge+cut} y={botY1} width={b-cut} height={tf}
-                fill={fillB} opacity="0.9" stroke={strokeB} strokeWidth="2"/>
-
-          {/* تظليل المستطيلات المزالة (اختياري توضيحي) */}
-          <rect x={cx - cut} y={yTop} width={cut} height={tf} fill="none" stroke="#ef4444" strokeDasharray="4 3"/>
-          <rect x={cx} y={yTop} width={cut} height={tf} fill="none" stroke="#ef4444" strokeDasharray="4 3"/>
         </svg>
       );
     }
@@ -156,8 +101,7 @@
           angle: "Verbindungswinkel (°): (Anzeige)",
           cut: "Breite des entfernten Streifens am oberen Flansch (mm):",
           beforeA: "Stück A — Schnitt links (nur oberer Flansch)",
-          beforeB: "Stück B — Schnitt rechts (nur oberer Flansch)",
-          after: "Nach dem Zusammenbau — zwei Stücke Seite an Seite (ohne Spalt)"
+          beforeB: "Stück B — Schnitt rechts (nur oberer Flansch)"
         },
         ar: {
           hello: "مرحبًا بكم في حاسبة الزاوية",
@@ -167,8 +111,7 @@
           angle: "زاوية التجميع (°): (للعرض فقط)",
           cut: "عرض الشريط المزال من الجناح العلوي (مم):",
           beforeA: "القطعة A — قطع من الطرف الأيسر (الجناح العلوي فقط)",
-          beforeB: "القطعة B — قطع من الطرف الأيمن (الجناح العلوي فقط)",
-          after: "بعد التجميع — قطعتان جنب بعض بلا فراغ"
+          beforeB: "القطعة B — قطع من الطرف الأيمن (الجناح العلوي فقط)"
         },
         en: {
           hello: "Welcome to the Angle Calculator",
@@ -178,8 +121,7 @@
           angle: "Joint angle (°): (display only)",
           cut: "Removed strip width on top flange (mm):",
           beforeA: "Piece A — cut on left (top flange only)",
-          beforeB: "Piece B — cut on right (top flange only)",
-          after: "After assembly — two pieces side by side, touching"
+          beforeB: "Piece B — cut on right (top flange only)"
         }
       }[lang]),[lang]);
 
@@ -239,10 +181,6 @@
                     <h3 className="font-semibold mb-2">{T.beforeB}</h3>
                     <BeamHead side="right" cut={cut} label="B"/>
                   </div>
-                  <div>
-                    <h3 className="font-semibold mb-2">{T.after}</h3>
-                    <AssembledCombined cut={cut}/>
-                  </div>
 
                   <div className="text-center mt-4">
                     <button className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
@@ -262,4 +200,4 @@
     root.render(<App/>);
   </script>
 </body>
-</html
+</html>
