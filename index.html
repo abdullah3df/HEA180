@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>معاينة قديمة + سلايدر (Δs)</title>
+  <title>معاينة قديمة + سلايدر (Δs) + اختيار HEA/HEB/HEM</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100" dir="rtl">
@@ -11,20 +11,50 @@
     <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-6">
       <h1 class="text-2xl font-bold text-center mb-2">زاوية التجميع من فرق القص (معاينة قديمة)</h1>
       <p class="text-sm text-gray-600 text-center mb-4">
-        θ = 2 · atan(Δs / F)، حيث Δs = s<sub>top</sub> − s<sub>bottom</sub> و F = (b − t<sub>w</sub>)/2، t<sub>w</sub>=8.5 مم.
+        θ = 2 · atan(Δs / F)، حيث Δs = s<sub>top</sub> − s<sub>bottom</sub> و F = (b − t<sub>w</sub>)/2.
       </p>
 
-      <!-- b -->
-      <div class="mb-3">
-        <label class="block font-semibold mb-1">عرض الجناح الكلي b (مم)</label>
-        <input id="b" type="number" min="1" step="0.1" value="180" class="w-full p-2 border rounded"/>
-        <div class="text-xs text-gray-500 mt-1">تُضبط حدود السلايدر تلقائيًا حسب F.</div>
+      <!-- اختيار النوع والمقاس -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div>
+          <label class="block font-semibold mb-1">نوع المقطع</label>
+          <select id="secType" class="w-full p-2 border rounded">
+            <option value="HEA">HEA</option>
+            <option value="HEB" selected>HEB</option>
+            <option value="HEM">HEM</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-semibold mb-1">المقاس</label>
+          <select id="secSize" class="w-full p-2 border rounded"></select>
+        </div>
+
+        <!-- b (مقفل) -->
+        <div>
+          <label class="block font-semibold mb-1">عرض الجناح b (مم)</label>
+          <input id="b" type="number" min="1" step="0.1" value="180"
+                 class="w-full p-2 border rounded bg-gray-100 text-gray-600"
+                 readonly />
+          <div class="text-xs text-gray-500 mt-1">
+            تُعبّأ تلقائيًا من الجدول الأوروبي وتكون قراءة فقط.
+          </div>
+        </div>
       </div>
 
       <!-- بطاقة F -->
-      <div class="bg-slate-50 border rounded p-3 mb-4 text-center">
-        <div class="text-sm text-slate-600">F (بروز الجناح) = (b − 8.5)/2</div>
-        <div id="FVal" class="text-xl font-bold">—</div>
+      <div class="bg-slate-50 border rounded p-3 mb-4 grid grid-cols-1 md:grid-cols-3 gap-3 text-center">
+        <div>
+          <div class="text-sm text-slate-600">t<sub>w</sub> (ثابت داخلي حسب الجدول)</div>
+          <div id="twVal" class="text-lg font-bold">—</div>
+        </div>
+        <div>
+          <div class="text-sm text-slate-600">t<sub>f</sub> (للعرض فقط)</div>
+          <div id="tfVal" class="text-lg font-bold">—</div>
+        </div>
+        <div>
+          <div class="text-sm text-slate-600">F = (b − t<sub>w</sub>)/2</div>
+          <div id="FVal" class="text-lg font-bold">—</div>
+        </div>
       </div>
 
       <!-- سلايدر العلوي -->
@@ -51,7 +81,7 @@
       <div class="bg-indigo-50 border border-indigo-200 rounded p-4 text-center mb-5">
         <div class="text-sm text-indigo-700">زاوية التجميع الناتجة</div>
         <div id="thetaOut" class="text-4xl font-extrabold text-indigo-800">0.00°</div>
-        <div class="text-xs text-gray-600 mt-1">إشارة (+) تعني الفتح للأعلى، و(−) للأسفل. إذا s<sub>top</sub>=s<sub>bottom</sub> ⇒ θ=0°.</div>
+        <div class="text-xs text-gray-600 mt-1">إذا s<sub>top</sub>=s<sub>bottom</sub> ⇒ θ=0°.</div>
       </div>
 
       <!-- المعاينة (القديمة) -->
@@ -64,11 +94,48 @@
   </div>
 
   <script>
-    // ثابت سماكة (لا يظهر للمستخدم)
-    const tw = 8.5;
+    // جدول مقاسات موسّع شائع (HEA/HEB/HEM 100 → 400)
+    // b: عرض الجناح، tw: سماكة العمود (web)، tf: سماكة الجناح (للعرض)
+    const SECTIONS = {
+      HEA: {
+        100:{ b:  96, tw: 5.0, tf:  8.0 }, 120:{ b: 114, tw: 5.0, tf:  8.0 },
+        140:{ b: 133, tw: 5.5, tf:  8.5 }, 160:{ b: 152, tw: 6.0, tf:  9.0 },
+        180:{ b: 171, tw: 6.0, tf:  9.5 }, 200:{ b: 190, tw: 6.5, tf: 10.0 },
+        220:{ b: 210, tw: 7.0, tf: 11.0 }, 240:{ b: 230, tw: 7.5, tf: 12.0 },
+        260:{ b: 250, tw: 8.0, tf: 12.5 }, 280:{ b: 270, tw: 8.5, tf: 13.0 },
+        300:{ b: 290, tw: 9.0, tf: 14.0 }, 320:{ b: 300, tw: 9.5, tf: 15.0 },
+        340:{ b: 300, tw: 9.5, tf: 15.5 }, 360:{ b: 300, tw: 10.0, tf: 16.0 },
+        400:{ b: 300, tw: 11.0, tf: 17.0 }
+      },
+      HEB: {
+        100:{ b: 100, tw: 6.0, tf: 10.0 }, 120:{ b: 120, tw: 6.5, tf: 11.0 },
+        140:{ b: 140, tw: 7.0, tf: 12.0 }, 160:{ b: 160, tw: 8.0, tf: 13.0 },
+        180:{ b: 180, tw: 8.5, tf: 14.0 }, 200:{ b: 200, tw: 9.0, tf: 15.0 },
+        220:{ b: 220, tw: 9.5, tf: 16.0 }, 240:{ b: 240, tw: 10.0, tf: 17.0 },
+        260:{ b: 260, tw: 10.0, tf: 18.0 }, 280:{ b: 280, tw: 11.0, tf: 19.0 },
+        300:{ b: 300, tw: 12.0, tf: 21.0 }, 320:{ b: 300, tw: 12.0, tf: 22.0 },
+        340:{ b: 300, tw: 12.0, tf: 22.5 }, 360:{ b: 300, tw: 13.0, tf: 23.0 },
+        400:{ b: 300, tw: 14.0, tf: 24.0 }
+      },
+      HEM: {
+        100:{ b: 106, tw: 12.0, tf: 20.0 }, 120:{ b: 126, tw: 12.5, tf: 21.0 },
+        140:{ b: 146, tw: 13.0, tf: 22.0 }, 160:{ b: 166, tw: 14.0, tf: 23.0 },
+        180:{ b: 186, tw: 14.5, tf: 24.0 }, 200:{ b: 206, tw: 15.0, tf: 25.0 },
+        220:{ b: 226, tw: 16.0, tf: 26.0 }, 240:{ b: 248, tw: 17.0, tf: 27.0 },
+        260:{ b: 268, tw: 17.5, tf: 28.0 }, 280:{ b: 288, tw: 18.0, tf: 29.0 },
+        300:{ b: 310, tw: 19.0, tf: 31.0 }, 320:{ b: 310, tw: 20.0, tf: 32.0 },
+        340:{ b: 310, tw: 21.0, tf: 33.0 }, 360:{ b: 310, tw: 22.0, tf: 35.0 },
+        400:{ b: 310, tw: 23.0, tf: 36.0 }
+      }
+    };
 
     // DOM
+    const elType = document.getElementById('secType');
+    const elSize = document.getElementById('secSize');
     const elB = document.getElementById('b');
+
+    const elTwVal = document.getElementById('twVal');
+    const elTfVal = document.getElementById('tfVal');
     const elFVal = document.getElementById('FVal');
 
     const elSTop = document.getElementById('sTop');
@@ -85,17 +152,53 @@
     function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
     const deg = r => r * 180 / Math.PI;
 
-    function compute(){
-      const b = parseFloat(elB.value)||0;
-      const F = (b - tw)/2;
-      elFVal.textContent = F>0 ? F.toFixed(2)+' مم' : '—';
+    function populateSizes(){
+      const typ = elType.value;
+      const sizes = Object.keys(SECTIONS[typ]).map(n=>parseInt(n,10)).sort((a,b)=>a-b);
+      elSize.innerHTML = '';
+      sizes.forEach(n=>{
+        const opt = document.createElement('option');
+        opt.value = n; opt.textContent = n;
+        if (typ==='HEB' && n===180) opt.selected = true;
+        elSize.appendChild(opt);
+      });
+    }
+
+    function applySection(){
+      const typ = elType.value;
+      const size = elSize.value;
+      const sec = SECTIONS[typ][size];
+      if (!sec) return;
+
+      elB.value = sec.b; // b مقفول
+      elTwVal.textContent = sec.tw.toFixed(2) + ' مم';
+      elTfVal.textContent = sec.tf.toFixed(2) + ' مم';
+
+      const F = (sec.b - sec.tw)/2;
+      elFVal.textContent = F.toFixed(2) + ' مم';
 
       // حدود السلايدر = F
       const maxRange = Math.max(0, F);
-      elSTop.max = maxRange; elSBottom.max = maxRange;
+      elSTop.max = maxRange;
+      elSBottom.max = maxRange;
 
-      const sTop = clamp(parseFloat(elSTop.value)||0, 0, maxRange);
-      const sBottom = clamp(parseFloat(elSBottom.value)||0, 0, maxRange);
+      // قص القيم ضمن الحد
+      if (parseFloat(elSTop.value) > maxRange) elSTop.value = maxRange;
+      if (parseFloat(elSBottom.value) > maxRange) elSBottom.value = maxRange;
+
+      compute();
+    }
+
+    function compute(){
+      const typ = elType.value;
+      const size = elSize.value;
+      const sec = SECTIONS[typ][size];
+
+      const b = sec.b, tw = sec.tw, tf = sec.tf;
+      const F = (b - tw)/2;
+
+      const sTop = clamp(parseFloat(elSTop.value)||0, 0, Math.max(0,F));
+      const sBottom = clamp(parseFloat(elSBottom.value)||0, 0, Math.max(0,F));
 
       elSTopVal.textContent = sTop.toFixed(2);
       elSBottomVal.textContent = sBottom.toFixed(2);
@@ -103,7 +206,7 @@
       elRTop.textContent = (b - sTop).toFixed(2);
       elRBottom.textContent = (b - sBottom).toFixed(2);
 
-      // الزاوية من فرق القص
+      // θ من فرق القص
       let theta = 0;
       if (F>0){
         const delta = sTop - sBottom;
@@ -112,38 +215,32 @@
       const sign = theta>0 ? '+' : (theta<0 ? '−' : '');
       elThetaOut.textContent = `${sign}${Math.abs(theta).toFixed(2)}°`;
 
-      drawOldPreview(b, sTop, sBottom);
+      drawOldPreview(b, tw, tf, sTop, sBottom);
     }
 
-    // === معاينة "القديمة": قطعتان H وزاوية كبيرة بالمنتصف ===
-    function drawOldPreview(b, sTop, sBottom){
+    // === المعاينة القديمة: قطعتان H وزاوية كبيرة بالمنتصف ===
+    function drawOldPreview(b, tw, tf, sTop, sBottom){
       svg.innerHTML = '';
 
-      // أبعاد الرسم
       const W=900, H=330, gap=60;
-      const topY=70, flangeLenPx=300;   // طول الجناح المرئي لكل قطعة
+      const topY=70, flangeLenPx=300;
       const webH=150;
 
-      // تحويل مم → بكسل بحيث b يساوي flangeLenPx
       const scale = b>0 ? flangeLenPx / b : 1;
 
-      // سماكات مرئية (شكل فقط)
-      const tfPx = Math.max(8, 16 * scale * 0.6);
+      const tfPx = Math.max(8, tf * scale * 0.6);
       const twPx = Math.max(8, tw * scale * 0.6);
 
       const cx=W/2;
 
-      // حدود كل قطعة
       const L_left  = cx - gap/2 - flangeLenPx;
       const L_right = cx - gap/2;
       const R_left  = cx + gap/2;
       const R_right = cx + gap/2 + flangeLenPx;
 
-      // موضع الويب
       const L_webX = L_right - flangeLenPx/2 - twPx/2;
       const R_webX = R_left +  flangeLenPx/2 - twPx/2;
 
-      // دوال
       function rect(x,y,w,h,fill,stroke){
         const r=document.createElementNS(NS,'rect');
         r.setAttribute('x',x); r.setAttribute('y',y);
@@ -170,53 +267,55 @@
         el.textContent=t; svg.appendChild(el);
       }
 
-      // القطعة اليسار (علوي/سفلي + الويب)
-      rect(L_left, topY, flangeLenPx, tfPx, '#e5e7eb', '#94a3b8');                    // علوي
-      rect(L_left, topY+webH+tfPx, flangeLenPx, tfPx, '#e5e7eb', '#94a3b8');           // سفلي
-      rect(L_webX, topY, twPx, webH+tfPx, '#334155');                                   // ويب
+      // اليسار
+      rect(L_left, topY, flangeLenPx, tfPx, '#e5e7eb', '#94a3b8');
+      rect(L_left, topY+webH+tfPx, flangeLenPx, tfPx, '#e5e7eb', '#94a3b8');
+      rect(L_webX, topY, twPx, webH+tfPx, '#334155');
 
-      // القطعة اليمين
-      rect(R_left, topY, flangeLenPx, tfPx, '#e5e7eb', '#94a3b8');                      // علوي
-      rect(R_left, topY+webH+tfPx, flangeLenPx, tfPx, '#e5e7eb', '#94a3b8');            // سفلي
-      rect(R_webX, topY, twPx, webH+tfPx, '#334155');                                   // ويب
+      // اليمين
+      rect(R_left, topY, flangeLenPx, tfPx, '#e5e7eb', '#94a3b8');
+      rect(R_left, topY+webH+tfPx, flangeLenPx, tfPx, '#e5e7eb', '#94a3b8');
+      rect(R_webX, topY, twPx, webH+tfPx, '#334155');
 
       // القص (شرائط حمراء من جهة التجميع)
       const sTopPx = Math.min(flangeLenPx, Math.max(0, sTop*scale));
       const sBotPx = Math.min(flangeLenPx, Math.max(0, sBottom*scale));
 
-      // علوي
       if(sTopPx>0){
-        rect(L_right - sTopPx, topY, sTopPx, tfPx, '#ef4444'); // يسار من الداخل
-        rect(R_left,          topY, sTopPx, tfPx, '#ef4444');  // يمين من الداخل
+        rect(L_right - sTopPx, topY, sTopPx, tfPx, '#ef4444');
+        rect(R_left,          topY, sTopPx, tfPx, '#ef4444');
       }
-      // سفلي
       if(sBotPx>0){
         rect(L_right - sBotPx, topY+webH+tfPx, sBotPx, tfPx, '#ef4444');
         rect(R_left,           topY+webH+tfPx, sBotPx, tfPx, '#ef4444');
       }
 
-      // قياس b أعلى كل قطعة
+      // b لكل قطعة
       line(L_left, topY-16, L_right, topY-16, '#94a3b8', 1.2);
       text((L_left+L_right)/2, topY-20, `b = ${b} mm`, '11', '#334155', 'middle');
       line(R_left, topY-16, R_right, topY-16, '#94a3b8', 1.2);
       text((R_left+R_right)/2, topY-20, `b = ${b} mm`, '11', '#334155', 'middle');
 
-      // الزاوية في المنتصف + خط منقط
-      // تُحسب في compute وتُعرض نصًا فوق (يكفي نضع رقم كبير وسط الشكل)
+      // الزاوية في المنتصف
       const thetaTxt = document.getElementById('thetaOut').textContent.replace(/[^\d\.\+\-]/g,'');
       line(L_right, topY-6, R_left, topY-6, '#ef4444', 2, '6 6');
       text(450, topY + webH/2 + tfPx/2 + 18, `${thetaTxt}°`, '56', '#ef4444', 'middle');
     }
 
+    function init(){
+      populateSizes();
+      applySection();
+    }
+
     // أحداث
+    elType.addEventListener('change', ()=>{ populateSizes(); applySection(); });
+    elSize.addEventListener('change', applySection);
     ['input','change'].forEach(evt=>{
-      elB.addEventListener(evt, compute);
-      elSTop.addEventListener(evt, compute);
-      elSBottom.addEventListener(evt, compute);
+      document.getElementById('sTop').addEventListener(evt, compute);
+      document.getElementById('sBottom').addEventListener(evt, compute);
     });
 
-    // بدء
-    compute();
+    init();
   </script>
 </body>
 </html>
