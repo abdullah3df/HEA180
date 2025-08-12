@@ -3,233 +3,177 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>معاينة وحاسبة زاوية التجميع (قص الأجنحة)</title>
+  <title>حاسبة زاوية التجميع من فرق القص</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100" dir="rtl">
   <div class="min-h-screen p-6">
-    <div class="max-w-5xl mx-auto bg-white rounded-xl shadow-lg p-6">
-      <h1 class="text-2xl font-bold text-center mb-1">حاسبة زاوية التجميع ومعاينة رأس المقطع</h1>
+    <div class="max-w-3xl mx-auto bg-white rounded-xl shadow-lg p-6">
+      <h1 class="text-2xl font-bold text-center mb-2">حاسبة زاوية التجميع من فرق القص</h1>
       <p class="text-sm text-gray-600 text-center mb-4">
-        ندخل مقدار القص بالمليمتر لكل من الجناح العلوي والسفلي لقطعتين متقابلتين. تُحسب الزاوية من العلاقة:
-        <span class="font-mono">θ = 2 · atan(s / F)</span> حيث
-        <span class="font-mono">F = (b − t<sub>w</sub>) / 2</span>.
+        الزاوية المحصّلة تُحسب من فرق القص بين العلوي والسفلي:
+        <span class="font-mono">θ = 2 · atan(Δs / F)</span>،
+        حيث <span class="font-mono">Δs = s<sub>top</sub> − s<sub>bottom</sub></span>،
+        و <span class="font-mono">F = (b − t<sub>w</sub>)/2</span> مع <span class="font-mono">t<sub>w</sub>=8.5 mm</span>.
       </p>
 
-      <!-- إدخالات -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-        <div>
-          <label class="block font-semibold mb-1">عرض الجناح الكلي b (مم)</label>
-          <input id="b" type="number" min="1" step="0.1" value="180"
-                 class="w-full p-2 border rounded"/>
-          <div class="text-xs text-gray-500 mt-1">ثوابت داخلية: t<sub>w</sub>=8.5 مم ، t<sub>f</sub>=16 مم</div>
-        </div>
+      <!-- إدخال b -->
+      <div class="mb-4">
+        <label class="block font-semibold mb-1">عرض الجناح الكلي b (مم)</label>
+        <input id="b" type="number" min="1" step="0.1" value="180"
+               class="w-full p-2 border rounded"/>
+        <div class="text-xs text-gray-500 mt-1">يُعاد ضبط حدود السلايدر تلقائيًا حسب F.</div>
+      </div>
 
-        <div class="p-3 bg-slate-50 rounded border">
-          <div class="font-semibold mb-2">قص الجناح <u>العلوي</u> (مم)</div>
-          <input id="sTop" type="number" min="0" step="0.1" value="0"
-                 class="w-full p-2 border rounded"/>
-        </div>
+      <!-- بطاقة F -->
+      <div class="bg-slate-50 border rounded p-3 mb-4 text-center">
+        <div class="text-sm text-slate-600">F (بروز الجناح) = (b − t<sub>w</sub>)/2</div>
+        <div id="FVal" class="text-xl font-bold">—</div>
+      </div>
 
-        <div class="p-3 bg-slate-50 rounded border">
-          <div class="font-semibold mb-2">قص الجناح <u>السفلي</u> (مم)</div>
-          <input id="sBottom" type="number" min="0" step="0.1" value="0"
-                 class="w-full p-2 border rounded"/>
+      <!-- سلايدر العلوي -->
+      <div class="mb-4 p-3 border rounded">
+        <div class="flex items-center justify-between mb-1">
+          <label class="font-semibold">قص الجناح العلوي s<sub>top</sub> (مم)</label>
+          <div class="text-sm text-gray-700"><span id="sTopVal">0.00</span> مم</div>
+        </div>
+        <input id="sTop" type="range" min="0" max="100" step="0.1" value="0" class="w-full"/>
+        <div class="text-xs text-gray-500 mt-1">المتبقي r<sub>top</sub> = <span id="rTop">—</span> مم</div>
+      </div>
+
+      <!-- سلايدر السفلي -->
+      <div class="mb-4 p-3 border rounded">
+        <div class="flex items-center justify-between mb-1">
+          <label class="font-semibold">قص الجناح السفلي s<sub>bottom</sub> (مم)</label>
+          <div class="text-sm text-gray-700"><span id="sBottomVal">0.00</span> مم</div>
+        </div>
+        <input id="sBottom" type="range" min="0" max="100" step="0.1" value="0" class="w-full"/>
+        <div class="text-xs text-gray-500 mt-1">المتبقي r<sub>bottom</sub> = <span id="rBottom">—</span> مم</div>
+      </div>
+
+      <!-- النتائج -->
+      <div class="bg-indigo-50 border border-indigo-200 rounded p-4 text-center">
+        <div class="text-sm text-indigo-700">زاوية التجميع الناتجة</div>
+        <div id="thetaOut" class="text-3xl font-extrabold text-indigo-800">—</div>
+        <div class="text-xs text-gray-600 mt-1">
+          إشارة (+) تعني الفتح باتجاه الأعلى، و(−) باتجاه الأسفل. إذا كان s<sub>top</sub>=s<sub>bottom</sub> ⇒ θ=0°.
         </div>
       </div>
 
-      <!-- نتائج رقمية -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-center mb-6">
-        <div class="p-3 rounded bg-slate-50 border">
-          <div class="text-sm text-slate-600">F (بروز الجناح)</div>
-          <div id="FVal" class="text-xl font-bold">—</div>
-        </div>
-        <div class="p-3 rounded bg-red-50 border border-red-200">
-          <div class="text-sm text-red-600">s العلوي (مم)</div>
-          <div id="sTopOut" class="text-xl font-bold text-red-700">—</div>
-          <div class="text-xs text-gray-500 mt-1">θ العلوي = <span id="thetaTop">—</span>°</div>
-        </div>
-        <div class="p-3 rounded bg-red-50 border border-red-200">
-          <div class="text-sm text-red-600">s السفلي (مم)</div>
-          <div id="sBottomOut" class="text-xl font-bold text-red-700">—</div>
-          <div class="text-xs text-gray-500 mt-1">θ السفلي = <span id="thetaBottom">—</span>°</div>
-        </div>
-        <div class="p-3 rounded bg-indigo-50 border border-indigo-200">
-          <div class="text-sm text-indigo-700">زاوية التجميع المعروضة</div>
-          <div id="thetaDisplay" class="text-2xl font-bold text-indigo-800">—</div>
-          <div class="text-xs text-gray-500 mt-1">(يعرض θ العلوي إذا s العلوي>0، وإلا يعرض θ السفلي)</div>
-        </div>
-      </div>
-
-      <!-- معاينة SVG لرأسين متقابلين -->
-      <div class="bg-white rounded-lg border p-2">
-        <svg id="view" width="100%" viewBox="0 0 940 420" class="block mx-auto">
-          <!-- يُرسم ديناميكياً -->
+      <!-- المعاينة -->
+      <div class="mt-6 bg-white border rounded p-3">
+        <svg id="preview" width="100%" viewBox="0 0 560 180" class="block mx-auto">
+          <!-- يُرسم ديناميكيًا -->
         </svg>
       </div>
-
     </div>
   </div>
 
   <script>
-    // ثوابت (لا تظهر للمستخدم)
-    const tw = 8.5;   // web thickness (mm)
-    const tf = 16;    // flange thickness (mm) – للعرض فقط
+    // ثابت سماكة "العمود"
+    const tw = 8.5;
 
     // عناصر DOM
     const elB = document.getElementById('b');
+    const elFVal = document.getElementById('FVal');
+
     const elSTop = document.getElementById('sTop');
     const elSBottom = document.getElementById('sBottom');
+    const elSTopVal = document.getElementById('sTopVal');
+    const elSBottomVal = document.getElementById('sBottomVal');
+    const elRTop = document.getElementById('rTop');
+    const elRBottom = document.getElementById('rBottom');
 
-    const elFVal = document.getElementById('FVal');
-    const elSTopOut = document.getElementById('sTopOut');
-    const elSBottomOut = document.getElementById('sBottomOut');
-    const elThetaTop = document.getElementById('thetaTop');
-    const elThetaBottom = document.getElementById('thetaBottom');
-    const elThetaDisplay = document.getElementById('thetaDisplay');
-
-    const svg = document.getElementById('view');
+    const elThetaOut = document.getElementById('thetaOut');
+    const svg = document.getElementById('preview');
     const NS = "http://www.w3.org/2000/svg";
 
     function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+    function deg(x){ return x * 180 / Math.PI; }
 
-    function calcThetaFromS(b, s){
-      const F = (b - tw) / 2;
-      if (F <= 0) return {F:0, theta:0};
-      const theta = s<=0 ? 0 : (2 * Math.atan(s / F)) * 180/Math.PI;
-      return {F, theta};
+    function compute(){
+      const b = parseFloat(elB.value)||0;
+      const F = (b - tw)/2;
+      elFVal.textContent = F>0 ? F.toFixed(2)+' مم' : '—';
+
+      // حد السلايدر = F (مع هامش صغير)
+      const maxRange = Math.max(0, F);
+      elSTop.max = maxRange; elSBottom.max = maxRange;
+
+      const sTop = clamp(parseFloat(elSTop.value)||0, 0, maxRange);
+      const sBottom = clamp(parseFloat(elSBottom.value)||0, 0, maxRange);
+
+      elSTopVal.textContent = sTop.toFixed(2);
+      elSBottomVal.textContent = sBottom.toFixed(2);
+
+      const rTop = Math.max(0, b - sTop);
+      const rBottom = Math.max(0, b - sBottom);
+      elRTop.textContent = rTop.toFixed(2);
+      elRBottom.textContent = rBottom.toFixed(2);
+
+      // الزاوية من فرق القص
+      let theta = 0;
+      if (F>0){
+        const delta = sTop - sBottom; // موجب = فتح للأعلى
+        theta = 2 * deg(Math.atan(delta / F));
+      }
+      const sign = theta>0 ? '+' : (theta<0 ? '−' : '');
+      elThetaOut.textContent = `${sign}${Math.abs(theta).toFixed(2)}°`;
+
+      drawPreview(b, sTop, sBottom);
     }
 
-    function draw(){
-      const b = parseFloat(elB.value) || 0;
-      const sTop = clamp(parseFloat(elSTop.value)||0, 0, b);
-      const sBot = clamp(parseFloat(elSBottom.value)||0, 0, b);
-
-      const {F, theta:thetaT} = calcThetaFromS(b, sTop);
-      const {theta:thetaB} = calcThetaFromS(b, sBot);
-
-      elFVal.textContent = F>0 ? F.toFixed(2)+' مم' : '—';
-      elSTopOut.textContent = sTop.toFixed(2);
-      elSBottomOut.textContent = sBot.toFixed(2);
-      elThetaTop.textContent = thetaT.toFixed(2);
-      elThetaBottom.textContent = thetaB.toFixed(2);
-
-      // الزاوية المعروضة (حسب كلامك: زاوية واحدة بارزة في الوسط)
-      const thetaDisplay = (sTop>0 ? thetaT : thetaB);
-      elThetaDisplay.textContent = thetaDisplay.toFixed(2) + '°';
-
-      // ====== رسم رأسين متقابلين بشكل مبسّط لكن واقعي ======
+    function drawPreview(b, sTop, sBottom){
       svg.innerHTML = '';
-
-      // إطار/هوامش
-      const W=940, H=420, m=40;
-      const cx=W/2, topY=90, webH=200;
-
-      // تحويل مم → بكسل بحيث b ~ 320px لكل قطعة
-      const targetFlangePx = 320;
-      const scale = b>0 ? targetFlangePx / b : 1;
-
-      const half = (b*scale)/2;
-      const tfPx = Math.max(10, tf*scale*0.6);
-      const twPx = Math.max(10, tw*scale*0.6);
-
-      // مواضع الحافتين لقطعة اليسار وقطعة اليمين
-      // نخلي بينهما مسافة صغيرة لرسم الزاوية
-      const gap = 50;
-
-      // قطعة اليسار (قص على يمينها عند التجميع)
-      const L_left  = cx - gap/2 - (b*scale);
-      const L_right = cx - gap/2;
-      const L_webX  = L_right - (b*scale)/2 - twPx/2;
-
-      // قطعة اليمين (قص على يسارها)
-      const R_left  = cx + gap/2;
-      const R_right = cx + gap/2 + (b*scale);
-      const R_webX  = R_left + (b*scale)/2 - twPx/2;
+      const W = 560, H = 180, x0 = 40, bar = 480, cy1 = 60, cy2 = 130;
+      const scale = b>0 ? bar / b : 1;
 
       // دوال مساعدة
-      function rect(x,y,w,h,fill,stroke,op){
-        const r=document.createElementNS(NS,'rect');
-        r.setAttribute('x',x); r.setAttribute('y',y);
-        r.setAttribute('width',w); r.setAttribute('height',h);
-        if(fill) r.setAttribute('fill',fill);
-        if(stroke){ r.setAttribute('stroke',stroke); r.setAttribute('stroke-width','1'); }
-        if(op) r.setAttribute('opacity',op);
-        svg.appendChild(r);
-      }
-      function line(x1,y1,x2,y2,color,w,ds){
+      const line = (x1,y1,x2,y2,stroke,w)=>{
         const l=document.createElementNS(NS,'line');
         l.setAttribute('x1',x1); l.setAttribute('y1',y1);
         l.setAttribute('x2',x2); l.setAttribute('y2',y2);
-        l.setAttribute('stroke',color||'#000');
-        l.setAttribute('stroke-width',w||1.5);
-        if(ds) l.setAttribute('stroke-dasharray',ds);
+        l.setAttribute('stroke',stroke); l.setAttribute('stroke-width',w||12);
         svg.appendChild(l);
-      }
-      function text(x,y,t,fs,fill,anc){
+      };
+      const text = (x,y,t,fs,fill,anc)=>{
         const el=document.createElementNS(NS,'text');
         el.setAttribute('x',x); el.setAttribute('y',y);
         el.setAttribute('font-size',fs||'12');
         el.setAttribute('fill',fill||'#111');
-        el.setAttribute('text-anchor',anc||'start');
+        el.setAttribute('text-anchor',anc||'middle');
         el.textContent=t; svg.appendChild(el);
-      }
+      };
 
-      // أجنحة وويب قطعتي اليسار واليمين (قبل إبراز القص)
-      // اليسار
-      rect(L_left,  topY,                 b*scale, tfPx, '#e5e7eb', '#94a3b8');
-      rect(L_left,  topY+webH+tfPx,       b*scale, tfPx, '#e5e7eb', '#94a3b8');
-      rect(L_webX,  topY,                 twPx,    webH+tfPx, '#334155', null, 0.7);
+      // شريط علوي
+      line(x0, cy1, x0+bar, cy1, '#e5e7eb', 12);
+      const sTopPx = clamp(sTop*scale, 0, bar);
+      line(x0, cy1, x0+sTopPx, cy1, '#ef4444', 12);
+      line(x0+sTopPx, cy1, x0+bar, cy1, '#6b7280', 12);
+      text(x0+bar/2, cy1-16, 'الجناح العلوي', '11', '#334155');
 
-      // اليمين
-      rect(R_left,  topY,                 b*scale, tfPx, '#e5e7eb', '#94a3b8');
-      rect(R_left,  topY+webH+tfPx,       b*scale, tfPx, '#e5e7eb', '#94a3b8');
-      rect(R_webX,  topY,                 twPx,    webH+tfPx, '#334155', null, 0.7);
+      // شريط سفلي
+      line(x0, cy2, x0+bar, cy2, '#e5e7eb', 12);
+      const sBottomPx = clamp(sBottom*scale, 0, bar);
+      line(x0, cy2, x0+sBottomPx, cy2, '#ef4444', 12);
+      line(x0+sBottomPx, cy2, x0+bar, cy2, '#6b7280', 12);
+      text(x0+bar/2, cy2+22, 'الجناح السفلي', '11', '#334155');
 
-      // إبراز القص (شرائط حمراء بطول sTop و sBottom)
-      const sTopPx = Math.min(b*scale, sTop*scale);
-      const sBotPx = Math.min(b*scale, sBot*scale);
-
-      // علوي: نقص من حافة التجميع (يمين اليسار / يسار اليمين)
-      // يسار-علوي
-      if(sTopPx>0) rect(L_right - sTopPx, topY, sTopPx, tfPx, '#ef4444', null, 0.9);
-      // يمين-علوي
-      if(sTopPx>0) rect(R_left, topY, sTopPx, tfPx, '#ef4444', null, 0.9);
-
-      // سفلي
-      if(sBotPx>0) rect(L_right - sBotPx, topY+webH+tfPx, sBotPx, tfPx, '#ef4444', null, 0.9);
-      if(sBotPx>0) rect(R_left, topY+webH+tfPx, sBotPx, tfPx, '#ef4444', null, 0.9);
-
-      // قياس b أعلى كل قطعة (للتوضيح)
-      line(L_left, topY-16, L_right, topY-16, '#94a3b8', 1.2);
-      text((L_left+L_right)/2, topY-20, `b = ${b} mm`, '11', '#334155', 'middle');
-
-      line(R_left, topY-16, R_right, topY-16, '#94a3b8', 1.2);
-      text((R_left+R_right)/2, topY-20, `b = ${b} mm`, '11', '#334155', 'middle');
-
-      // عرض الزاوية الكبيرة في الوسط
-      text(cx, topY + webH/2 + tfPx/2 + 18, `${thetaDisplay.toFixed(2)}°`, '64', '#ef4444', 'middle');
-      // خط قياس الزاوية (منقط) بين حافتي الجناحين العلويين
-      line(L_right, topY-6, R_left, topY-6, '#ef4444', 2, '6 6');
-
-      // تعليقات صغيرة على القص العلوي والسفلي
-      if(sTop>0){
-        text(L_right - sTopPx/2, topY + tfPx + 14, `s علوي = ${sTop.toFixed(2)} mm`, '11', '#ef4444', 'middle');
-      }
-      if(sBot>0){
-        text(L_right - sBotPx/2, topY + webH + tfPx + 14, `s سفلي = ${sBot.toFixed(2)} mm`, '11', '#ef4444', 'middle');
-      }
+      // b و قيم s
+      text(x0, cy2+44, `b = ${b} mm`, '11', '#374151', 'start');
+      text(x0+bar, cy1-28, `s_top = ${sTop.toFixed(2)} mm`, '11', '#ef4444', 'end');
+      text(x0+bar, cy2-12, `s_bottom = ${sBottom.toFixed(2)} mm`, '11', '#ef4444', 'end');
     }
 
     // أحداث
     ['input','change'].forEach(evt=>{
-      elB.addEventListener(evt, draw);
-      elSTop.addEventListener(evt, draw);
-      elSBottom.addEventListener(evt, draw);
+      elB.addEventListener(evt, compute);
+      elSTop.addEventListener(evt, compute);
+      elSBottom.addEventListener(evt, compute);
     });
 
-    // أول رسم
-    draw();
+    // أول تشغيل
+    compute();
   </script>
 </body>
 </html>
