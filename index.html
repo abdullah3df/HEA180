@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>Δs Winkel • HEA/HEB/HEM</title>
+  <title>Δs</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100" dir="rtl">
@@ -118,7 +118,7 @@
         </div>
       </div>
 
-      <!-- Vorschau (klassisch) -->
+      <!-- Vorschau -->
       <div class="bg-white border rounded-xl p-3">
         <svg id="view" width="100%" viewBox="0 0 900 330" class="block mx-auto">
           <!-- dynamic -->
@@ -128,327 +128,106 @@
   </div>
 
   <script>
-    // ===== i18n (de/en/ar) =====
+    // ===== i18n (de/en/ar) (لا تغيير وظيفي) =====
     const T = {
-      de: {
-        title: "Winkel aus Δs (klassische Vorschau)",
-        subtitle: "θ = 2 · atan(Δs / F), wobei Δs = s_top − s_bottom und F = (b − t_w)/2.",
-        type: "Profiltyp",
-        helperType: "EU-Standardprofile",
-        size: "Größe",
-        helperSize: "Wähle die Nenngröße",
-        b: "Flanschbreite b (mm)",
-        bHint: "Aus EU-Tabelle übernommen (Read-only).",
-        tw: "t_w (intern laut Tabelle)",
-        tf: "t_f (nur Anzeige)",
-        F: "F = (b − t_w)/2",
-        stop: "Abtrag oberer Flansch s_top (mm)",
-        sBot: "Abtrag unterer Flansch s_bottom (mm)",
-        rTop: "Rest r_top",
-        rBottom: "Rest r_bottom",
-        theta: "Ergebniswinkel",
-        thetaNote: "Wenn s_top = s_bottom, dann θ = 0°."
-      },
-      en: {
-        title: "Angle from Δs (classic preview)",
-        subtitle: "θ = 2 · atan(Δs / F), where Δs = s_top − s_bottom and F = (b − t_w)/2.",
-        type: "Section type",
-        helperType: "EU standard profiles",
-        size: "Size",
-        helperSize: "Choose nominal size",
-        b: "Flange width b (mm)",
-        bHint: "Filled from EU table (read-only).",
-        tw: "t_w (internal from table)",
-        tf: "t_f (display only)",
-        F: "F = (b − t_w)/2",
-        stop: "Top flange removal s_top (mm)",
-        sBot: "Bottom flange removal s_bottom (mm)",
-        rTop: "Remaining r_top",
-        rBottom: "Remaining r_bottom",
-        theta: "Resulting angle",
-        thetaNote: "If s_top = s_bottom, then θ = 0°."
-      },
-      ar: {
-        title: "زاوية التجميع من Δs (المعاينة الكلاسيكية)",
-        subtitle: "θ = 2 · atan(Δs / F)، حيث Δs = s_top − s_bottom و F = (b − t_w)/2.",
-        type: "نوع المقطع",
-        helperType: "مقاطع قياسية أوروبية",
-        size: "المقاس",
-        helperSize: "اختر المقاس الاسمي",
-        b: "عرض الجناح b (مم)",
-        bHint: "تعبئة من الجدول الأوروبي (قراءة فقط).",
-        tw: "t_w (ثابت حسب الجدول)",
-        tf: "t_f (للعرض فقط)",
-        F: "F = (b − t_w)/2",
-        stop: "قص الجناح العلوي s_top (مم)",
-        sBot: "قص الجناح السفلي s_bottom (مم)",
-        rTop: "المتبقي r_top",
-        rBottom: "المتبقي r_bottom",
-        theta: "زاوية التجميع الناتجة",
-        thetaNote: "إذا كان s_top = s_bottom فستكون θ = 0°."
-      }
+      de:{title:"Winkel aus Δs (klassische Vorschau)",subtitle:"θ = 2 · atan(Δs / F), wobei Δs = s_top − s_bottom und F = (b − t_w)/2.",type:"Profiltyp",helperType:"EU-Standardprofile",size:"Größe",helperSize:"Wähle die Nenngröße",b:"Flanschbreite b (mm)",bHint:"Aus EU-Tabelle übernommen (Read-only).",tw:"t_w (intern laut Tabelle)",tf:"t_f (nur Anzeige)",F:"F = (b − t_w)/2",stop:"Abtrag oberer Flansch s_top (mm)",sBot:"Abtrag unterer Flansch s_bottom (mm)",rTop:"Rest r_top",rBottom:"Rest r_bottom",theta:"Ergebniswinkel",thetaNote:"Wenn s_top = s_bottom, dann θ = 0°."},
+      en:{title:"Angle from Δs (classic preview)",subtitle:"θ = 2 · atan(Δs / F), where Δs = s_top − s_bottom and F = (b − t_w)/2.",type:"Section type",helperType:"EU standard profiles",size:"Size",helperSize:"Choose nominal size",b:"Flange width b (mm)",bHint:"Filled from EU table (read-only).",tw:"t_w (internal from table)",tf:"t_f (display only)",F:"F = (b − t_w)/2",stop:"Top flange removal s_top (mm)",sBot:"Bottom flange removal s_bottom (mm)",rTop:"Remaining r_top",rBottom:"Remaining r_bottom",theta:"Resulting angle",thetaNote:"If s_top = s_bottom, then θ = 0°."},
+      ar:{title:"زاوية التجميع من Δs (المعاينة الكلاسيكية)",subtitle:"θ = 2 · atan(Δs / F)، حيث Δs = s_top − s_bottom و F = (b − t_w)/2.",type:"نوع المقطع",helperType:"مقاطع قياسية أوروبية",size:"المقاس",helperSize:"اختر المقاس الاسمي",b:"عرض الجناح b (مم)",bHint:"تعبئة من الجدول الأوروبي (قراءة فقط).",tw:"t_w (ثابت حسب الجدول)",tf:"t_f (للعرض فقط)",F:"F = (b − t_w)/2",stop:"قص الجناح العلوي s_top (مم)",sBot:"قص الجناح السفلي s_bottom (مم)",rTop:"المتبقي r_top",rBottom:"المتبقي r_bottom",theta:"زاوية التجميع الناتجة",thetaNote:"إذا كان s_top = s_bottom فستكون θ = 0°."}
     };
-
     const $ = id => document.getElementById(id);
     const langSel = $("lang");
+    function applyLang(){const L=T[langSel.value]||T.de;$("title").textContent=L.title;$("subtitle").innerHTML=L.subtitle;$("lblType").textContent=L.type;$("helperType").textContent=L.helperType;$("lblSize").textContent=L.size;$("helperSize").textContent=L.helperSize;$("lblB").textContent=L.b;$("bHint").textContent=L.bHint;$("lblTw").innerHTML=L.tw;$("lblTf").innerHTML=L.tf;$("lblF").innerHTML=L.F;$("lblStop").textContent=L.stop;$("lblSbot").textContent=L.sBot;$("lblRtop").textContent=L.rTop;$("lblRbot").textContent=L.rBottom;$("lblTheta").textContent=L.theta;$("thetaNote").textContent=L.thetaNote;}
+    $("startBtn").addEventListener("click",()=>{$("splash").classList.add("hidden");});
+    langSel.addEventListener("change",applyLang);
 
-    function applyLang() {
-      const L = T[langSel.value] || T.de;
+    // ===== EU Sections (مختصر كما كان) =====
+    const SECTIONS={HEA:{100:{b:96,tw:5,tf:8},120:{b:114,tw:5,tf:8},140:{b:133,tw:5.5,tf:8.5},160:{b:152,tw:6,tf:9},180:{b:171,tw:6,tf:9.5},200:{b:190,tw:6.5,tf:10},220:{b:210,tw:7,tf:11},240:{b:230,tw:7.5,tf:12},260:{b:250,tw:8,tf:12.5},280:{b:270,tw:8.5,tf:13},300:{b:290,tw:9,tf:14},320:{b:300,tw:9.5,tf:15},340:{b:300,tw:9.5,tf:15.5},360:{b:300,tw:10,tf:16},400:{b:300,tw:11,tf:17}},
+      HEB:{100:{b:100,tw:6,tf:10},120:{b:120,tw:6.5,tf:11},140:{b:140,tw:7,tf:12},160:{b:160,tw:8,tf:13},180:{b:180,tw:8.5,tf:14},200:{b:200,tw:9,tf:15},220:{b:220,tw:9.5,tf:16},240:{b:240,tw:10,tf:17},260:{b:260,tw:10,tf:18},280:{b:280,tw:11,tf:19},300:{b:300,tw:12,tf:21},320:{b:300,tw:12,tf:22},340:{b:300,tw:12,tf:22.5},360:{b:300,tw:13,tf:23},400:{b:300,tw:14,tf:24}},
+      HEM:{100:{b:106,tw:12,tf:20},120:{b:126,tw:12.5,tf:21},140:{b:146,tw:13,tf:22},160:{b:166,tw:14,tf:23},180:{b:186,tw:14.5,tf:24},200:{b:206,tw:15,tf:25},220:{b:226,tw:16,tf:26},240:{b:248,tw:17,tf:27},260:{b:268,tw:17.5,tf:28},280:{b:288,tw:18,tf:29},300:{b:310,tw:19,tf:31},320:{b:310,tw:20,tf:32},340:{b:310,tw:21,tf:33},360:{b:310,tw:22,tf:35},400:{b:310,tw:23,tf:36}}};
 
-      $("title").textContent = L.title;
-      $("subtitle").innerHTML = L.subtitle;
+    const elType=$("secType"),elSize=$("secSize"),elB=$("b"),elTwVal=$("twVal"),elTfVal=$("tfVal"),elFVal=$("FVal");
+    const elSTop=$("sTop"),elSBottom=$("sBottom"),elSTopVal=$("sTopVal"),elSBottomVal=$("sBottomVal"),elRTop=$("rTop"),elRBottom=$("rBottom");
+    const elThetaOut=$("thetaOut"),svg=$("view");const NS="http://www.w3.org/2000/svg";
+    function clamp(v,min,max){return Math.max(min,Math.min(max,v));} const deg=r=>r*180/Math.PI;
 
-      $("lblType").textContent = L.type;
-      $("helperType").textContent = L.helperType;
-      $("lblSize").textContent = L.size;
-      $("helperSize").textContent = L.helperSize;
-
-      $("lblB").textContent = L.b;
-      $("bHint").textContent = L.bHint;
-
-      $("lblTw").innerHTML = L.tw;
-      $("lblTf").innerHTML = L.tf;
-      $("lblF").innerHTML  = L.F;
-
-      $("lblStop").textContent = L.stop;
-      $("lblSbot").textContent = L.sBot;
-
-      $("lblRtop").textContent = L.rTop;
-      $("lblRbot").textContent = L.rBottom;
-
-      $("lblTheta").textContent = L.theta;
-      $("thetaNote").textContent = L.thetaNote;
-
-      // اتجاه الصفحة: نحافظ على RTL كما هو لتجنّب تغيير الشكل.
-      // (لو تحب نغيّر LTR للإنجليزية/الألمانية، قُل لي وغيّرها بسطر واحد)
-      // document.body.dir = (langSel.value === 'ar') ? 'rtl' : 'ltr';
-      // document.documentElement.lang = langSel.value;
-    }
-
-    // ===== EU Sections (b, tw, tf) =====
-    const SECTIONS = {
-      HEA: {
-        100:{ b:  96, tw: 5.0, tf:  8.0 }, 120:{ b: 114, tw: 5.0, tf:  8.0 },
-        140:{ b: 133, tw: 5.5, tf:  8.5 }, 160:{ b: 152, tw: 6.0, tf:  9.0 },
-        180:{ b: 171, tw: 6.0, tf:  9.5 }, 200:{ b: 190, tw: 6.5, tf: 10.0 },
-        220:{ b: 210, tw: 7.0, tf: 11.0 }, 240:{ b: 230, tw: 7.5, tf: 12.0 },
-        260:{ b: 250, tw: 8.0, tf: 12.5 }, 280:{ b: 270, tw: 8.5, tf: 13.0 },
-        300:{ b: 290, tw: 9.0, tf: 14.0 }, 320:{ b: 300, tw: 9.5, tf: 15.0 },
-        340:{ b: 300, tw: 9.5, tf: 15.5 }, 360:{ b: 300, tw: 10.0, tf: 16.0 },
-        400:{ b: 300, tw: 11.0, tf: 17.0 }
-      },
-      HEB: {
-        100:{ b: 100, tw: 6.0, tf: 10.0 }, 120:{ b: 120, tw: 6.5, tf: 11.0 },
-        140:{ b: 140, tw: 7.0, tf: 12.0 }, 160:{ b: 160, tw: 8.0, tf: 13.0 },
-        180:{ b: 180, tw: 8.5, tf: 14.0 }, 200:{ b: 200, tw: 9.0, tf: 15.0 },
-        220:{ b: 220, tw: 9.5, tf: 16.0 }, 240:{ b: 240, tw: 10.0, tf: 17.0 },
-        260:{ b: 260, tw: 10.0, tf: 18.0 }, 280:{ b: 280, tw: 11.0, tf: 19.0 },
-        300:{ b: 300, tw: 12.0, tf: 21.0 }, 320:{ b: 300, tw: 12.0, tf: 22.0 },
-        340:{ b: 300, tw: 12.0, tf: 22.5 }, 360:{ b: 300, tw: 13.0, tf: 23.0 },
-        400:{ b: 300, tw: 14.0, tf: 24.0 }
-      },
-      HEM: {
-        100:{ b: 106, tw: 12.0, tf: 20.0 }, 120:{ b: 126, tw: 12.5, tf: 21.0 },
-        140:{ b: 146, tw: 13.0, tf: 22.0 }, 160:{ b: 166, tw: 14.0, tf: 23.0 },
-        180:{ b: 186, tw: 14.5, tf: 24.0 }, 200:{ b: 206, tw: 15.0, tf: 25.0 },
-        220:{ b: 226, tw: 16.0, tf: 26.0 }, 240:{ b: 248, tw: 17.0, tf: 27.0 },
-        260:{ b: 268, tw: 17.5, tf: 28.0 }, 280:{ b: 288, tw: 18.0, tf: 29.0 },
-        300:{ b: 310, tw: 19.0, tf: 31.0 }, 320:{ b: 310, tw: 20.0, tf: 32.0 },
-        340:{ b: 310, tw: 21.0, tf: 33.0 }, 360:{ b: 310, tw: 22.0, tf: 35.0 },
-        400:{ b: 310, tw: 23.0, tf: 36.0 }
-      }
-    };
-
-    // ===== عناصر =====
-    const elType = $("secType");
-    const elSize = $("secSize");
-    const elB = $("b");
-
-    const elTwVal = $("twVal");
-    const elTfVal = $("tfVal");
-    const elFVal  = $("FVal");
-
-    const elSTop = $("sTop");
-    const elSBottom = $("sBottom");
-    const elSTopVal = $("sTopVal");
-    const elSBottomVal = $("sBottomVal");
-    const elRTop = $("rTop");
-    const elRBottom = $("rBottom");
-
-    const elThetaOut = $("thetaOut");
-    const svg = $("view");
-    const NS = "http://www.w3.org/2000/svg";
-
-    function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
-    const deg = r => r * 180 / Math.PI;
-
-    // Splash
-    $("startBtn").addEventListener("click", () => {
-      $("splash").classList.add("hidden");
-    });
-
-    // لغة
-    langSel.addEventListener("change", applyLang);
-
-    // ملء المقاسات
-    function populateSizes(){
-      const typ = elType.value;
-      const sizes = Object.keys(SECTIONS[typ]).map(n=>parseInt(n,10)).sort((a,b)=>a-b);
-      elSize.innerHTML = '';
-      sizes.forEach(n=>{
-        const opt = document.createElement('option');
-        opt.value = n; opt.textContent = n;
-        if (typ==='HEB' && n===180) opt.selected = true;
-        elSize.appendChild(opt);
-      });
-    }
-
-    function applySection(){
-      const typ = elType.value;
-      const size = elSize.value;
-      const sec = SECTIONS[typ][size];
-      if (!sec) return;
-
-      elB.value = sec.b; // b read-only
-      elTwVal.textContent = sec.tw.toFixed(2) + ' mm';
-      elTfVal.textContent = sec.tf.toFixed(2) + ' mm';
-
-      const F = (sec.b - sec.tw)/2;
-      elFVal.textContent = F.toFixed(2) + ' mm';
-
-      // حدود السلايدر = F
-      const maxRange = Math.max(0, F);
-      elSTop.max = maxRange;
-      elSBottom.max = maxRange;
-
-      if (parseFloat(elSTop.value) > maxRange) elSTop.value = maxRange;
-      if (parseFloat(elSBottom.value) > maxRange) elSBottom.value = maxRange;
-
-      compute();
-    }
+    function populateSizes(){const typ=elType.value;const sizes=Object.keys(SECTIONS[typ]).map(n=>parseInt(n,10)).sort((a,b)=>a-b);elSize.innerHTML='';sizes.forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;if(typ==='HEB'&&n===180)o.selected=true;elSize.appendChild(o);});}
+    function applySection(){const typ=elType.value,size=elSize.value,sec=SECTIONS[typ][size];if(!sec)return;elB.value=sec.b;elTwVal.textContent=sec.tw.toFixed(2)+' mm';elTfVal.textContent=sec.tf.toFixed(2)+' mm';const F=(sec.b-sec.tw)/2;elFVal.textContent=F.toFixed(2)+' mm';const maxRange=Math.max(0,F);elSTop.max=maxRange;elSBottom.max=maxRange;if(parseFloat(elSTop.value)>maxRange)elSTop.value=maxRange;if(parseFloat(elSBottom.value)>maxRange)elSBottom.value=maxRange;compute();}
 
     function compute(){
-      const typ = elType.value;
-      const size = elSize.value;
-      const sec = SECTIONS[typ][size];
-
-      const b = sec.b, tw = sec.tw, tf = sec.tf;
-      const F = (b - tw)/2;
-
-      const sTop = clamp(parseFloat(elSTop.value)||0, 0, Math.max(0,F));
-      const sBottom = clamp(parseFloat(elSBottom.value)||0, 0, Math.max(0,F));
-
-      elSTopVal.textContent = sTop.toFixed(2);
-      elSBottomVal.textContent = sBottom.toFixed(2);
-
-      elRTop.textContent = (b - sTop).toFixed(2);
-      elRBottom.textContent = (b - sBottom).toFixed(2);
-
-      // θ من فرق القص
-      let theta = 0;
-      if (F>0){
-        const delta = sTop - sBottom;
-        theta = 2 * deg(Math.atan(delta / F));
-      }
-      const sign = theta>0 ? '+' : (theta<0 ? '−' : '');
-      elThetaOut.textContent = `${sign}${Math.abs(theta).toFixed(2)}°`;
-
-      drawPreview(b, tw, tf, sTop, sBottom);
+      const typ=elType.value,size=elSize.value,sec=SECTIONS[typ][size];
+      const b=sec.b,tw=sec.tw,tf=sec.tf;const F=(b-tw)/2;
+      const sTop=clamp(parseFloat(elSTop.value)||0,0,Math.max(0,F));
+      const sBottom=clamp(parseFloat(elSBottom.value)||0,0,Math.max(0,F));
+      elSTopVal.textContent=sTop.toFixed(2);elSBottomVal.textContent=sBottom.toFixed(2);
+      elRTop.textContent=(b-sTop).toFixed(2);elRBottom.textContent=(b-sBottom).toFixed(2);
+      let theta=0;if(F>0){const delta=sTop-sBottom;theta=2*deg(Math.atan(delta/F));}
+      const sign=theta>0?'+':(theta<0?'−':'');elThetaOut.textContent=`${sign}${Math.abs(theta).toFixed(2)}°`;
+      drawPreview(b,tw,tf,sTop,sBottom);
     }
 
-    // المعاينة القديمة: قطعتان H + الزاوية بينهما
-    function drawPreview(b, tw, tf, sTop, sBottom){
-      svg.innerHTML = '';
-
-      const W=900, H=330, gap=60;
-      const topY=70, flangeLenPx=300;
-      const webH=150;
-
-      const scale = b>0 ? flangeLenPx / b : 1;
-
-      const tfPx = Math.max(8, tf * scale * 0.6);
-      const twPx = Math.max(8, tw * scale * 0.6);
-
+    // ==== المعاينة مع ألوان شفافة: المتبقي أخضر، المقطوع أحمر ====
+    function drawPreview(b,tw,tf,sTop,sBottom){
+      svg.innerHTML='';
+      const W=900,H=330,gap=60,topY=70,flangeLenPx=300,webH=150;
+      const scale=b>0?flangeLenPx/b:1;
+      const tfPx=Math.max(8,tf*scale*0.6),twPx=Math.max(8,tw*scale*0.6);
       const cx=W/2;
+      const L_left=cx-gap/2-flangeLenPx,L_right=cx-gap/2,R_left=cx+gap/2,R_right=cx+gap/2+flangeLenPx;
+      const L_webX=L_right-flangeLenPx/2-twPx/2,R_webX=R_left+flangeLenPx/2-twPx/2;
 
-      const L_left  = cx - gap/2 - flangeLenPx;
-      const L_right = cx - gap/2;
-      const R_left  = cx + gap/2;
-      const R_right = cx + gap/2 + flangeLenPx;
+      // ألوان شفافة
+      const CUT_RED   ='rgba(239,68,68,0.55)';   // أحمر شفاف
+      const BASE_GREEN='rgba(16,185,129,0.35)';  // أخضر شفاف
+      const STROKE='#94a3b8';
 
-      const L_webX = L_right - flangeLenPx/2 - twPx/2;
-      const R_webX = R_left +  flangeLenPx/2 - twPx/2;
+      function rect(x,y,w,h,fill,stroke){const r=document.createElementNS(NS,'rect');r.setAttribute('x',x);r.setAttribute('y',y);r.setAttribute('width',w);r.setAttribute('height',h);if(fill)r.setAttribute('fill',fill);if(stroke){r.setAttribute('stroke',stroke);r.setAttribute('stroke-width','1');}svg.appendChild(r);}
+      function line(x1,y1,x2,y2,color,w,ds){const l=document.createElementNS(NS,'line');l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke',color||'#000');l.setAttribute('stroke-width',w||1.5);if(ds)l.setAttribute('stroke-dasharray',ds);svg.appendChild(l);}
+      function text(x,y,t,fs,fill,anc){const el=document.createElementNS(NS,'text');el.setAttribute('x',x);el.setAttribute('y',y);el.setAttribute('font-size',fs||'12');el.setAttribute('fill',fill||'#111');el.setAttribute('text-anchor',anc||'start');el.textContent=t;svg.appendChild(el);}
 
-      function rect(x,y,w,h,fill,stroke){
-        const r=document.createElementNS(NS,'rect');
-        r.setAttribute('x',x); r.setAttribute('y',y);
-        r.setAttribute('width',w); r.setAttribute('height',h);
-        if(fill) r.setAttribute('fill',fill);
-        if(stroke){ r.setAttribute('stroke',stroke); r.setAttribute('stroke-width','1'); }
-        svg.appendChild(r);
-      }
-      function line(x1,y1,x2,y2,color,w,ds){
-        const l=document.createElementNS(NS,'line');
-        l.setAttribute('x1',x1); l.setAttribute('y1',y1);
-        l.setAttribute('x2',x2); l.setAttribute('y2',y2);
-        l.setAttribute('stroke',color||'#000');
-        l.setAttribute('stroke-width',w||1.5);
-        if(ds) l.setAttribute('stroke-dasharray',ds);
-        svg.appendChild(l);
-      }
-      function text(x,y,t,fs,fill,anc){
-        const el=document.createElementNS(NS,'text');
-        el.setAttribute('x',x); el.setAttribute('y',y);
-        el.setAttribute('font-size',fs||'12');
-        el.setAttribute('fill',fill||'#111');
-        el.setAttribute('text-anchor',anc||'start');
-        el.textContent=t; svg.appendChild(el);
-      }
-
+      // جسم H: المتبقي الأساسي = أخضر شفاف
       // اليسار
-      rect(L_left, topY, flangeLenPx, tfPx, '#e5e7eb', '#94a3b8');
-      rect(L_left, topY+webH+tfPx, flangeLenPx, tfPx, '#e5e7eb', '#94a3b8');
-      rect(L_webX, topY, twPx, webH+tfPx, '#334155');
-
+      rect(L_left, topY, flangeLenPx, tfPx, BASE_GREEN, STROKE);                 // علوي
+      rect(L_left, topY+webH+tfPx, flangeLenPx, tfPx, BASE_GREEN, STROKE);       // سفلي
+      rect(L_webX, topY, twPx, webH+tfPx, '#334155');                             // ويب
       // اليمين
-      rect(R_left, topY, flangeLenPx, tfPx, '#e5e7eb', '#94a3b8');
-      rect(R_left, topY+webH+tfPx, flangeLenPx, tfPx, '#e5e7eb', '#94a3b8');
+      rect(R_left, topY, flangeLenPx, tfPx, BASE_GREEN, STROKE);
+      rect(R_left, topY+webH+tfPx, flangeLenPx, tfPx, BASE_GREEN, STROKE);
       rect(R_webX, topY, twPx, webH+tfPx, '#334155');
 
-      // القص (شرائط حمراء)
-      const sTopPx = Math.min(flangeLenPx, Math.max(0, sTop*scale));
-      const sBotPx = Math.min(flangeLenPx, Math.max(0, sBottom*scale));
+      // المقطوع = أحمر شفاف من جهة التجميع
+      const sTopPx=Math.min(flangeLenPx,Math.max(0,sTop*scale));
+      const sBotPx=Math.min(flangeLenPx,Math.max(0,sBottom*scale));
 
       if(sTopPx>0){
-        rect(L_right - sTopPx, topY, sTopPx, tfPx, '#ef4444');
-        rect(R_left,          topY, sTopPx, tfPx, '#ef4444');
+        rect(L_right-sTopPx, topY, sTopPx, tfPx, CUT_RED); // يسار
+        rect(R_left,         topY, sTopPx, tfPx, CUT_RED); // يمين
       }
       if(sBotPx>0){
-        rect(L_right - sBotPx, topY+webH+tfPx, sBotPx, tfPx, '#ef4444');
-        rect(R_left,           topY+webH+tfPx, sBotPx, tfPx, '#ef4444');
+        rect(L_right-sBotPx, topY+webH+tfPx, sBotPx, tfPx, CUT_RED);
+        rect(R_left,         topY+webH+tfPx, sBotPx, tfPx, CUT_RED);
       }
 
-      // b للقطعتين
-      line(L_left, topY-16, L_right, topY-16, '#94a3b8', 1.2);
+      // b لكل قطعة
+      line(L_left, topY-16, L_right, topY-16, STROKE, 1.2);
       text((L_left+L_right)/2, topY-20, `b = ${b} mm`, '11', '#334155', 'middle');
-      line(R_left, topY-16, R_right, topY-16, '#94a3b8', 1.2);
+      line(R_left, topY-16, R_right, topY-16, STROKE, 1.2);
       text((R_left+R_right)/2, topY-20, `b = ${b} mm`, '11', '#334155', 'middle');
 
       // الزاوية في المنتصف
-      const thetaTxt = $("thetaOut").textContent.replace(/[^\d\.\+\-]/g,'');
+      const thetaTxt=$("thetaOut").textContent.replace(/[^\d\.\+\-]/g,'');
       line(L_right, topY-6, R_left, topY-6, '#ef4444', 2, '6 6');
       text(450, topY + webH/2 + tfPx/2 + 18, `${thetaTxt}°`, '56', '#ef4444', 'middle');
     }
 
     function init(){
-      applyLang(); // default de
+      applyLang();
       populateSizes();
       applySection();
-      $("secType").addEventListener('change', ()=>{ populateSizes(); applySection(); });
-      $("secSize").addEventListener('change', applySection);
+      $("secType").addEventListener('change',()=>{populateSizes();applySection();});
+      $("secSize").addEventListener('change',applySection);
       ['input','change'].forEach(evt=>{
-        $("sTop").addEventListener(evt, compute);
-        $("sBottom").addEventListener(evt, compute);
+        $("sTop").addEventListener(evt,compute);
+        $("sBottom").addEventListener(evt,compute);
       });
     }
     init();
