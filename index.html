@@ -20,7 +20,7 @@
     const { useState, useMemo } = React;
 
     function App(){
-      // افتراضي: لغة ألمانية كما طلبت سابقًا
+      // افتراضي ألماني
       const [lang, setLang] = useState("de");
       const T = useMemo(()=>({
         de:{
@@ -65,17 +65,21 @@
       const align = lang==="ar" ? "text-right" : "text-left";
 
       const [show, setShow] = useState(true);
-      const [b, setB] = useState(180);       // عرض الجناح (مم)
+      const [b, setB] = useState(180);        // عرض الجناح (مم)
       const [theta, setTheta] = useState(16); // زاوية التجميع (°)
 
       // s = b * (1 - cos(theta/2))
-      const calc = () => {
+      const res = useMemo(()=>{
         if (!isFinite(b) || b<=0 || !isFinite(theta) || theta<=0 || theta>120) return null;
         const a = (theta/2) * Math.PI/180;
         const s = b * (1 - Math.cos(a));
         return { s, a };
-      };
-      const res = calc();
+      }, [b, theta]);
+
+      // مقياس الرسم في الـ SVG حتى يظهر b دائمًا داخل الإطار
+      const svgBarMax = 280; // بكسل
+      const scale = b > 0 ? svgBarMax / b : 1;
+      const cutPx = res ? Math.min(svgBarMax, res.s * scale) : 0;
 
       return (
         <div dir={dir} className={`min-h-screen p-6 ${align}`}>
@@ -102,15 +106,19 @@
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block font-semibold mb-1">{T.b}</label>
-                      <input type="number" min="1" step="0.1" value={b}
-                             onChange={e=>setB(parseFloat(e.target.value)||0)}
-                             className="w-full p-2 border rounded"/>
+                      <input
+                        type="number" min="1" step="0.1" value={b}
+                        onChange={e=>setB(parseFloat(e.target.value)||0)}
+                        className="w-full p-2 border rounded"
+                      />
                     </div>
                     <div>
                       <label className="block font-semibold mb-1">{T.angle}</label>
-                      <input type="number" min="1" max="120" step="0.1" value={theta}
-                             onChange={e=>setTheta(parseFloat(e.target.value)||0)}
-                             className="w-full p-2 border rounded"/>
+                      <input
+                        type="number" min="1" max="120" step="0.1" value={theta}
+                        onChange={e=>setTheta(parseFloat(e.target.value)||0)}
+                        className="w-full p-2 border rounded"
+                      />
                     </div>
                   </div>
 
@@ -133,18 +141,22 @@
                     )}
                   </div>
 
-                  {/* رسم توضيحي مبسّط */}
+                  {/* رسم توضيحي مبسّط (يُظهر الشريط المزال يسارًا كمثال) */}
                   {res && (
                     <div className="mt-6 flex justify-center">
                       <svg width="360" height="110" viewBox="0 0 360 110" className="bg-white rounded-lg shadow">
-                        <!-- الجناح قبل القص -->
-                        <rect x="20" y="40" width="280" height="20" fill="#e5e7eb" stroke="#cbd5e1"/>
-                        <!-- الشريط المزال (يسار كمثال) -->
-                        <rect x="20" y="40" width={Math.min(280, res.s)} height="20" fill="#ef4444" opacity="0.9"/>
-                        <!-- أبعاد -->
-                        <line x1="20" x2="300" y1="30" y2="30" stroke="#9ca3af"/>
-                        <text x="160" y="25" font-size="11" text-anchor="middle" fill="#374151">b = {b} mm</text>
-                        <text x="20" y="75" font-size="11" fill="#ef4444">s = {res.s.toFixed(2)} mm</text>
+                        {/* شريط الجناح قبل القص */}
+                        <rect x="20" y="40" width={svgBarMax} height="20" fill="#e5e7eb" stroke="#cbd5e1"/>
+                        {/* الجزء المزال */}
+                        <rect x="20" y="40" width={cutPx} height="20" fill="#ef4444" opacity="0.9"/>
+                        {/* أبعاد */}
+                        <line x1="20" y1="30" x2={20+svgBarMax} y2="30" stroke="#9ca3af"/>
+                        <text x={20+svgBarMax/2} y="25" fontSize="11" textAnchor="middle" fill="#374151">
+                          b = {b} mm
+                        </text>
+                        <text x="20" y="75" fontSize="11" fill="#ef4444">
+                          s = {res.s.toFixed(2)} mm
+                        </text>
                       </svg>
                     </div>
                   )}
