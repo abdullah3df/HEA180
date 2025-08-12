@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>حاسبة قص الجناح العلوي</title>
+  <title>حاسبة ورسم تفاعلي لرأس H وقطع الأجنحة</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -15,109 +15,169 @@
   <script type="text/babel">
     const { useState, useMemo } = React;
 
+    // حاسبات أساسية
+    function calcS(b, tw, thetaDeg){
+      const F = (b - tw) / 2;                 // بروز الجناح من وجه الويب
+      const a = (thetaDeg/2) * Math.PI/180;   // نصف الزاوية بالراديان
+      const s = Math.max(0, F * Math.tan(a)); // الشريط المزال لكل جناح مختار
+      return { F, s, r: Math.max(0, b - s) };
+    }
+
+    // رسم رأس H كامل مع إبراز الأشرطة المزالة
+    function HHeadPreview({ b, tw, tf, theta, cutTL, cutTR, cutBL, cutBR }){
+      // أبعاد الرسم
+      const W = 640, H = 360;
+      const cx = W/2, topY = 80;
+      const webH = 160;
+
+      // مقياس للتحويل من مم إلى بكسل بحيث b دائمًا ~480px
+      const targetWidthPx = 480;
+      const scale = b > 0 ? targetWidthPx / b : 1;
+
+      // تحويلات
+      const half = (b/2)*scale;
+      const leftEdge  = cx - half;
+      const rightEdge = cx + half;
+
+      const tfPx = Math.max(10, tf*scale*0.6); // سماكة مرئية لطيفة
+      const twPx = Math.max(10, tw*scale*0.6); // سمك الويب مرئي
+      const webL = cx - twPx/2;
+      const webR = cx + twPx/2;
+
+      // قيم s بالبيكسل
+      const { s } = calcS(b, tw, theta);
+      const sPx = s * scale;
+
+      // أدوات
+      const drawFlange = (x1, x2, y, color="#e5e7eb", stroke="#cbd5e1") => (
+        <rect x={x1} y={y} width={Math.max(0, x2-x1)} height={tfPx} fill={color} stroke={stroke}/>
+      );
+
+      return (
+        <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="bg-white rounded-lg shadow">
+          {/* قياس b */}
+          <line x1={leftEdge} y1={topY-16} x2={rightEdge} y2={topY-16} stroke="#94a3b8"/>
+          <text x={cx} y={topY-20} fontSize="12" textAnchor="middle" fill="#334155">b = {b} mm</text>
+
+          {/* الجناح العلوي (قبل القص) */}
+          {drawFlange(leftEdge, rightEdge, topY)}
+          {/* الجناح السفلي (قبل القص) */}
+          {drawFlange(leftEdge, rightEdge, topY + webH + tfPx)}
+
+          {/* الويب */}
+          <rect x={webL} y={topY} width={twPx} height={webH + tfPx} fill="#1e40af" opacity="0.75"/>
+
+          {/* الأشرطة المزالة (TOP) */}
+          {cutTL && (
+            <rect x={leftEdge} y={topY} width={Math.min(sPx, rightEdge-leftEdge)} height={tfPx}
+                  fill="#ef4444" opacity="0.9" />
+          )}
+          {cutTR && (
+            <rect x={Math.max(leftEdge, rightEdge - sPx)} y={topY}
+                  width={Math.min(sPx, rightEdge-leftEdge)} height={tfPx}
+                  fill="#ef4444" opacity="0.9" />
+          )}
+
+          {/* الأشرطة المزالة (BOTTOM) */}
+          {cutBL && (
+            <rect x={leftEdge} y={topY + webH + tfPx} width={Math.min(sPx, rightEdge-leftEdge)} height={tfPx}
+                  fill="#ef4444" opacity="0.9" />
+          )}
+          {cutBR && (
+            <rect x={Math.max(leftEdge, rightEdge - sPx)} y={topY + webH + tfPx}
+                  width={Math.min(sPx, rightEdge-leftEdge)} height={tfPx}
+                  fill="#ef4444" opacity="0.9" />
+          )}
+
+          {/* حدود توضيحية */}
+          <rect x={leftEdge} y={topY} width={rightEdge-leftEdge} height={tfPx} fill="none" stroke="#64748b" opacity="0.35"/>
+          <rect x={leftEdge} y={topY + webH + tfPx} width={rightEdge-leftEdge} height={tfPx} fill="none" stroke="#64748b" opacity="0.35"/>
+        </svg>
+      );
+    }
+
     function App(){
-      const [b, setB] = useState(180);     // عرض الجناح (مم)
-      const [theta, setTheta] = useState(16); // زاوية التجميع (°)
+      const [b, setB]   = useState(180); // mm
+      const [tw, setTw] = useState(10);  // mm
+      const [tf, setTf] = useState(16);  // mm (للعرض فقط)
+      const [theta, setTheta] = useState(16); // °
+      // أي الأجنحة نقطع؟
+      const [cutTL, setCutTL] = useState(true);  // Top-Left
+      const [cutTR, setCutTR] = useState(false); // Top-Right
+      const [cutBL, setCutBL] = useState(false); // Bottom-Left
+      const [cutBR, setCutBR] = useState(false); // Bottom-Right
 
-      // حساب s و r بالدرجات فقط
-      const result = useMemo(()=>{
-        if (!isFinite(b) || b<=0 || !isFinite(theta) || theta<=0 || theta>120) return null;
-        const alphaDeg = theta / 2;                               // نصف الزاوية بالدرجات
-        const alphaRad = alphaDeg * Math.PI / 180;                // للتحويل للحساب فقط
-        const s = b * (1 - Math.cos(alphaRad));                   // المقطوع لكل قطعة
-        const r = Math.max(0, b - s);                             // المتبقي
-        return { s, r, alphaDeg };
-      }, [b, theta]);
-
-      // معاينة بخط واحد كما اتفقنا
-      const svgBarMax = 320;
-      const scale = b > 0 ? svgBarMax / b : 1;
-      const cutPx = result ? Math.min(svgBarMax, result.s * scale) : 0;
-      const remPx = result ? Math.max(0, svgBarMax - cutPx) : 0;
+      const core = useMemo(()=>calcS(b, tw, theta), [b, tw, theta]);
 
       return (
         <div dir="rtl" className="min-h-screen p-6">
-          <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-6">
-            <h1 className="text-2xl font-bold mb-2 text-center">حاسبة قص الجناح العلوي</h1>
+          <div className="max-w-5xl mx-auto bg-white rounded-xl shadow-lg p-6">
+            <h1 className="text-2xl font-bold mb-2 text-center">حاسبة ورسم تفاعلي لرأس المقطع H</h1>
             <p className="text-sm text-gray-600 text-center mb-4">
-              أدخل عرض الجناح <span className="font-semibold">b</span> وزاوية التجميع <span className="font-semibold">θ</span>
-              للحصول على مقدار القطع <span className="font-semibold">s</span> والمتبقي <span className="font-semibold">r</span>.
+              المعادلة: <span className="font-mono">s = F · tan(θ/2)</span> حيث
+              <span className="font-mono"> F = (b − t<sub>w</sub>)/2</span>. اختر الأجنحة التي تريد قصها.
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
-              <div>
-                <label className="block font-semibold mb-1">عرض الجناح b (مم)</label>
-                <input
-                  type="number" min="1" step="0.1" value={b}
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <div className="md:col-span-2">
+                <label className="block font-semibold mb-1">عرض الجناح الكلي b (مم)</label>
+                <input type="number" min="1" step="0.1" value={b}
                   onChange={e=>setB(parseFloat(e.target.value)||0)}
-                  className="w-full p-2 border rounded"
-                />
-              </div>
+                  className="w-full p-2 border rounded"/>
 
-              <div>
-                <label className="block font-semibold mb-1">
-                  زاوية التجميع θ: <span className="font-bold"><span dir="ltr">{theta}°</span></span>
+                <label className="block font-semibold mt-4 mb-1">سماكة العمود t<sub>w</sub> (مم)</label>
+                <input type="number" min="1" step="0.1" value={tw}
+                  onChange={e=>setTw(parseFloat(e.target.value)||0)}
+                  className="w-full p-2 border rounded"/>
+
+                <label className="block font-semibold mt-4 mb-1">سماكة الجناح t<sub>f</sub> (مم) – للعرض فقط</label>
+                <input type="number" min="1" step="0.1" value={tf}
+                  onChange={e=>setTf(parseFloat(e.target.value)||0)}
+                  className="w-full p-2 border rounded"/>
+
+                <label className="block font-semibold mt-4 mb-1">
+                  زاوية التجميع θ: <span className="font-bold">{theta}°</span>
                 </label>
-                <input
-                  type="range" min="5" max="60" step="1" value={theta}
+                <input type="range" min="5" max="60" step="1" value={theta}
                   onChange={e=>setTheta(parseFloat(e.target.value)||0)}
-                  className="w-full"
-                />
-                <div className="text-xs text-gray-500 mt-1">
-                  α = θ/2 = <span dir="ltr">{(theta/2).toFixed(2)}°</span>
-                </div>
-              </div>
-            </div>
+                  className="w-full"/>
 
-            {result ? (
-              <>
-                <div className="mt-4 bg-gray-50 border rounded p-4">
-                  <h2 className="font-bold mb-3">النتائج</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-center">
-                    <div className="p-2 rounded bg-red-50 border border-red-200">
-                      <div className="text-sm text-red-600">المقطوع لكل قطعة (s)</div>
-                      <div className="text-xl font-bold text-red-700"><span dir="ltr">{result.s.toFixed(2)} mm</span></div>
-                    </div>
-                    <div className="p-2 rounded bg-emerald-50 border border-emerald-200">
-                      <div className="text-sm text-emerald-700">المتبقي من الجناح (r)</div>
-                      <div className="text-xl font-bold text-emerald-800"><span dir="ltr">{result.r.toFixed(2)} mm</span></div>
-                    </div>
-                    <div className="p-2 rounded bg-slate-50 border border-slate-200">
-                      <div className="text-sm text-slate-600">عرض الجناح الأصلي (b)</div>
-                      <div className="text-xl font-bold text-slate-800"><span dir="ltr">{b} mm</span></div>
+                <div className="grid grid-cols-2 gap-2 mt-4">
+                  <label className="flex items-center gap-2"><input type="checkbox" checked={cutTL} onChange={e=>setCutTL(e.target.checked)} /> قص علوي يسار</label>
+                  <label className="flex items-center gap-2"><input type="checkbox" checked={cutTR} onChange={e=>setCutTR(e.target.checked)} /> قص علوي يمين</label>
+                  <label className="flex items-center gap-2"><input type="checkbox" checked={cutBL} onChange={e=>setCutBL(e.target.checked)} /> قص سفلي يسار</label>
+                  <label className="flex items-center gap-2"><input type="checkbox" checked={cutBR} onChange={e=>setCutBR(e.target.checked)} /> قص سفلي يمين</label>
+                </div>
+
+                {/* جدول النتائج الأساسية */}
+                {core && (
+                  <div className="mt-4 bg-gray-50 border rounded p-3">
+                    <div className="grid grid-cols-2 gap-3 text-center">
+                      <div className="p-2 rounded bg-slate-50 border">
+                        <div className="text-sm text-slate-600">F (بروز الجناح)</div>
+                        <div className="text-lg font-bold">{core.F.toFixed(2)} مم</div>
+                      </div>
+                      <div className="p-2 rounded bg-red-50 border border-red-200">
+                        <div className="text-sm text-red-600">المقطوع لكل جناح مُختار (s)</div>
+                        <div className="text-lg font-bold text-red-700">{core.s.toFixed(2)} مم</div>
+                      </div>
+                      <div className="p-2 rounded bg-emerald-50 border border-emerald-200 col-span-2">
+                        <div className="text-sm text-emerald-700">المتبقي في جهة القص (r = b − s)</div>
+                        <div className="text-lg font-bold text-emerald-800">{core.r.toFixed(2)} مم</div>
+                      </div>
                     </div>
                   </div>
+                )}
+              </div>
 
-                  <p className="mt-3 text-xs text-gray-600">
-                    المعادلة: <span className="font-mono">s = b · (1 − cos(θ/2))</span>
-                    &nbsp;→&nbsp;
-                    <span className="font-mono">
-                      s = {b} · (1 − cos(<span dir="ltr">{(theta/2).toFixed(2)}°</span>))
-                    </span>
-                  </p>
-                </div>
-
-                {/* المعاينة: خط واحد (أحمر = المقطوع، رمادي = المتبقي) */}
-                <div className="mt-6 flex justify-center">
-                  <svg width="380" height="80" viewBox="0 0 380 80" className="bg-white rounded shadow">
-                    <line x1="30" y1="40" x2={30 + svgBarMax} y2="40" stroke="#e5e7eb" strokeWidth="10" />
-                    <line x1="30" y1="40" x2={30 + cutPx} y2="40" stroke="#ef4444" strokeWidth="10" />
-                    <line x1={30 + cutPx} y1="40" x2={30 + cutPx + remPx} y2="40" stroke="#6b7280" strokeWidth="10" />
-                    <line x1="30" y1="52" x2={30 + cutPx} y2="52" stroke="#ef4444" strokeDasharray="4 3"/>
-                    <text x={30 + cutPx/2} y="68" fontSize="11" textAnchor="middle" fill="#ef4444">
-                      s = {result.s.toFixed(2)} mm
-                    </text>
-                    <line x1={30 + cutPx} y1="28" x2={30 + cutPx + remPx} y2="28" stroke="#6b7280" strokeDasharray="4 3"/>
-                    <text x={30 + cutPx + remPx/2} y="20" fontSize="11" textAnchor="middle" fill="#374151">
-                      r = {result.r.toFixed(2)} mm
-                    </text>
-                    <text x="30" y="24" fontSize="11" fill="#374151">b = {b} mm</text>
-                  </svg>
-                </div>
-              </>
-            ) : (
-              <div className="mt-4 text-red-600">الرجاء إدخال قيم صحيحة.</div>
-            )}
+              {/* الرسم التفاعلي */}
+              <div className="md:col-span-3">
+                <HHeadPreview
+                  b={b} tw={tw} tf={tf} theta={theta}
+                  cutTL={cutTL} cutTR={cutTR} cutBL={cutBL} cutBR={cutBR}
+                />
+              </div>
+            </div>
           </div>
         </div>
       );
