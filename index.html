@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="ar">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>حاسبة قص الأجنحة لكل جانب (يسار/يمين)</title>
+  <title>حاسبة قص الأجنحة (علوي/سفلي) لكل جهة</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -13,169 +13,260 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useMemo } = React;
+    const {useState, useMemo} = React;
 
-    // حسبة البروز F والزاوية من مقاس قص معيّن s
-    function coreFromS(b, tw, s){
-      const F = (b - tw)/2;                          // بروز الجناح من وجه الويب
-      const sClamped = Math.max(0, Math.min(b, s));  // قص آمن داخل الحدود
-      const r = Math.max(0, b - sClamped);           // المتبقي
-      const theta = F > 0 ? (2 * Math.atan(sClamped / F)) * 180/Math.PI : 0; // درجة
-      return { F, s: sClamped, r, theta };
+    // ثوابت داخلية (لا تُعرض للمستخدم)
+    const TF_CONST = 16; // mm (غير مستخدم بالحساب، فقط للعرض إن لزم)
+    const TW_CONST = 10; // mm (مهم للحساب: F = (b - tw)/2)
+
+    // حسبة أساسية لجهة واحدة
+    // mode: 'angle' => نعتمد θ و نحسب s ، 'cut' => نعتمد s و نحسب θ
+    function solveSide(b, tw, mode, thetaDegInput, sInput){
+      const F = Math.max(0, (b - tw) / 2);
+      if (F === 0 || b <= 0) return {F, s: 0, theta: 0, r: b, valid: false};
+
+      if (mode === 'angle'){
+        const theta = Math.max(0, Math.min(120, thetaDegInput||0)); // درجة
+        const a = (theta/2) * Math.PI/180;
+        const s = Math.max(0, Math.min(b, F * Math.tan(a)));
+        const r = Math.max(0, b - s);
+        return {F, s, theta, r, valid: true};
+      } else {
+        const sRaw = Math.max(0, sInput||0);
+        const s = Math.min(b, sRaw);
+        const theta = s===0 ? 0 : (2 * Math.atan(s / F)) * 180/Math.PI;
+        const r = Math.max(0, b - s);
+        return {F, s, theta, r, valid: true};
+      }
     }
 
-    // رسم رأس H كامل ومتمركز — يقص العلوي والسفلي معًا لكل جهة
-    function HHeadPreview({ b, tw, tf, sLeft, sRight }) {
-      const W = 700, H = 360, margin = 28, innerW = W - margin*2;
-      const scale = b > 0 ? innerW / b : 1;
-
-      const cx = W/2, topY = 80, webH = 160;
-      const tfPx = Math.max(8, tf * scale * 0.6);
-      const twPx = Math.max(8, tw * scale * 0.6);
-
-      const half = (b * scale)/2;
-      const leftEdge  = cx - half;
-      const rightEdge = cx + half;
-      const webL = cx - twPx/2;
-
-      const sLeftPx  = Math.min(rightEdge - leftEdge, Math.max(0, sLeft * scale));
-      const sRightPx = Math.min(rightEdge - leftEdge, Math.max(0, sRight * scale));
-
-      const Flange = ({x1,x2,y}) => (
-        <rect x={x1} y={y} width={Math.max(0,x2-x1)} height={tfPx} fill="#e5e7eb" stroke="#cbd5e1"/>
-      );
+    // شريط معاينة بسيط لجناح واحد (يسار/يمين)
+    function FlangePreview({b, sLeft, sRight, label}){
+      const W=380, H=60, x0=20, y=30, barMax=320;
+      const scale = b>0 ? barMax / b : 1;
+      const sL = Math.max(0, Math.min(barMax, sLeft * scale));
+      const sR = Math.max(0, Math.min(barMax, sRight * scale));
+      const body = Math.max(0, barMax - sL - sR);
 
       return (
-        <svg width="100%" height="auto" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet"
-             className="bg-white rounded-lg shadow">
-          {/* قياس b */}
-          <line x1={leftEdge} y1={topY-16} x2={rightEdge} y2={topY-16} stroke="#94a3b8"/>
-          <text x={cx} y={topY-20} fontSize="12" textAnchor="middle" fill="#334155">b = {b} mm</text>
+        <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="bg-white rounded shadow">
+          <text x={W/2} y="16" fontSize="12" textAnchor="middle" fill="#334155">{label}</text>
+          {/* كامل العرض */}
+          <line x1={x0} y1={y} x2={x0+barMax} y2={y} stroke="#e5e7eb" strokeWidth="12"/>
+          {/* مقطوع يسار */}
+          {sL>0 && <line x1={x0} y1={y} x2={x0+sL} y2={y} stroke="#ef4444" strokeWidth="12"/>}
+          {/* المتبقي وسط */}
+          {body>0 && <line x1={x0+sL} y1={y} x2={x0+sL+body} y2={y} stroke="#6b7280" strokeWidth="12"/>}
+          {/* مقطوع يمين */}
+          {sR>0 && <line x1={x0+sL+body} y1={y} x2={x0+barMax} y2={y} stroke="#ef4444" strokeWidth="12"/>}
 
-          {/* الأجنحة قبل القص */}
-          <Flange x1={leftEdge} x2={rightEdge} y={topY}/>
-          <Flange x1={leftEdge} x2={rightEdge} y={topY + webH + tfPx}/>
-
-          {/* الويب */}
-          <rect x={webL} y={topY} width={twPx} height={webH + tfPx} fill="#1e40af" opacity="0.75"/>
-
-          {/* قص يسار (علوي + سفلي) */}
-          {sLeftPx > 0 && (
-            <>
-              <rect x={leftEdge} y={topY} width={sLeftPx} height={tfPx} fill="#ef4444" opacity="0.9"/>
-              <rect x={leftEdge} y={topY + webH + tfPx} width={sLeftPx} height={tfPx} fill="#ef4444" opacity="0.9"/>
-            </>
-          )}
-
-          {/* قص يمين (علوي + سفلي) */}
-          {sRightPx > 0 && (
-            <>
-              <rect x={rightEdge - sRightPx} y={topY} width={sRightPx} height={tfPx} fill="#ef4444" opacity="0.9"/>
-              <rect x={rightEdge - sRightPx} y={topY + webH + tfPx} width={sRightPx} height={tfPx} fill="#ef4444" opacity="0.9"/>
-            </>
-          )}
-
-          {/* حدود خفيفة */}
-          <rect x={leftEdge} y={topY} width={rightEdge-leftEdge} height={tfPx}
-                fill="none" stroke="#64748b" opacity="0.25"/>
-          <rect x={leftEdge} y={topY + webH + tfPx} width={rightEdge-leftEdge} height={tfPx}
-                fill="none" stroke="#64748b" opacity="0.25"/>
+          {/* أبعاد مبسطة */}
+          <text x={x0} y={y+20} fontSize="11" fill="#ef4444">يسار sL={sLeft.toFixed(2)}mm</text>
+          <text x={x0+barMax} y={y-16} fontSize="11" fill="#ef4444" textAnchor="end">يمين sR={sRight.toFixed(2)}mm</text>
+          <text x={x0+barMax/2} y={y+20} fontSize="11" fill="#374151" textAnchor="middle">b={b}mm</text>
         </svg>
       );
     }
 
-    function App(){
-      const [b, setB]   = useState(180);  // عرض الجناح الكلي
-      const [tw, setTw] = useState(10);   // سماكة الويب
-      const [tf, setTf] = useState(16);   // سماكة الجناح (للعرض)
-      const [sLeft, setSLeft]   = useState(0);  // مقدار قص اليسار (مم)
-      const [sRight, setSRight] = useState(0);  // مقدار قص اليمين (مم)
+    function SideControls({title, modeL, setModeL, modeR, setModeR,
+                           thetaL, setThetaL, thetaR, setThetaR,
+                           sL, setSL, sR, setSR}){
+      return (
+        <div className="bg-white rounded-lg border p-3">
+          <h3 className="font-bold mb-2">{title}</h3>
 
-      const left  = useMemo(()=>coreFromS(b, tw, sLeft), [b, tw, sLeft]);
-      const right = useMemo(()=>coreFromS(b, tw, sRight), [b, tw, sRight]);
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* يسار */}
+            <div className="p-3 rounded border">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-semibold">الجهة اليسرى</span>
+                <select className="border p-1 rounded" value={modeL} onChange={e=>setModeL(e.target.value)}>
+                  <option value="angle">إدخال زاوية</option>
+                  <option value="cut">إدخال مقدار قص (s)</option>
+                </select>
+              </div>
+
+              {modeL==='angle' ? (
+                <>
+                  <label className="block text-sm mb-1">زاوية θ<sub>L</sub>: <b>{thetaL}°</b></label>
+                  <input type="range" min="0" max="60" step="1" value={thetaL}
+                         onChange={e=>setThetaL(parseFloat(e.target.value)||0)}
+                         className="w-full"/>
+                </>
+              ) : (
+                <>
+                  <label className="block text-sm mb-1">مقدار القص s<sub>L</sub> (مم)</label>
+                  <input type="number" min="0" step="0.1" value={sL}
+                         onChange={e=>setSL(parseFloat(e.target.value)||0)}
+                         className="w-full p-2 border rounded"/>
+                </>
+              )}
+            </div>
+
+            {/* يمين */}
+            <div className="p-3 rounded border">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-semibold">الجهة اليمنى</span>
+                <select className="border p-1 rounded" value={modeR} onChange={e=>setModeR(e.target.value)}>
+                  <option value="angle">إدخال زاوية</option>
+                  <option value="cut">إدخال مقدار قص (s)</option>
+                </select>
+              </div>
+
+              {modeR==='angle' ? (
+                <>
+                  <label className="block text-sm mb-1">زاوية θ<sub>R</sub>: <b>{thetaR}°</b></label>
+                  <input type="range" min="0" max="60" step="1" value={thetaR}
+                         onChange={e=>setThetaR(parseFloat(e.target.value)||0)}
+                         className="w-full"/>
+                </>
+              ) : (
+                <>
+                  <label className="block text-sm mb-1">مقدار القص s<sub>R</sub> (مم)</label>
+                  <input type="number" min="0" step="0.1" value={sR}
+                         onChange={e=>setSR(parseFloat(e.target.value)||0)}
+                         className="w-full p-2 border rounded"/>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function App(){
+      // b فقط يظهر للمستخدم
+      const [b, setB] = useState(180);
+
+      // علوي: وضع الإدخال وقيمه
+      const [modeTopL, setModeTopL] = useState('angle');
+      const [modeTopR, setModeTopR] = useState('angle');
+      const [thetaTopL, setThetaTopL] = useState(0);
+      const [thetaTopR, setThetaTopR] = useState(0);
+      const [sTopL, setSTopL] = useState(0);
+      const [sTopR, setSTopR] = useState(0);
+
+      // سفلي: وضع الإدخال وقيمه
+      const [modeBotL, setModeBotL] = useState('angle');
+      const [modeBotR, setModeBotR] = useState('angle');
+      const [thetaBotL, setThetaBotL] = useState(0);
+      const [thetaBotR, setThetaBotR] = useState(0);
+      const [sBotL, setSBotL] = useState(0);
+      const [sBotR, setSBotR] = useState(0);
+
+      // حلول كل جهة حسب وضعها
+      const topL  = useMemo(()=>solveSide(b, TW_CONST, modeTopL, thetaTopL, sTopL), [b, modeTopL, thetaTopL, sTopL]);
+      const topR  = useMemo(()=>solveSide(b, TW_CONST, modeTopR, thetaTopR, sTopR), [b, modeTopR, thetaTopR, sTopR]);
+      const botL  = useMemo(()=>solveSide(b, TW_CONST, modeBotL, thetaBotL, sBotL), [b, modeBotL, thetaBotL, sBotL]);
+      const botR  = useMemo(()=>solveSide(b, TW_CONST, modeBotR, thetaBotR, sBotR), [b, modeBotR, thetaBotR, sBotR]);
+
+      const warnTop = (topL.s + topR.s) > b + 1e-6;
+      const warnBot = (botL.s + botR.s) > b + 1e-6;
 
       return (
         <div dir="rtl" className="min-h-screen p-6">
           <div className="max-w-5xl mx-auto bg-white rounded-xl shadow-lg p-6">
-            <h1 className="text-2xl font-bold mb-2 text-center">قص الأجنحة لكل جانب (يسار/يمين)</h1>
+            <h1 className="text-2xl font-bold mb-2 text-center">حاسبة قص الأجنحة — علوي/سفلي مستقل</h1>
             <p className="text-sm text-gray-600 text-center mb-4">
-              الزاوية الناتجة لكل جانب تُحسب تلقائيًا من المقاس الذي تُدخله:
-              <span className="font-mono"> θ = 2 · atan(s / F)</span> ، حيث
-              <span className="font-mono"> F = (b − t<sub>w</sub>)/2</span>.
+              يعتمد الحساب على: <span className="font-mono">s = F · tan(θ/2)</span> و
+              <span className="font-mono"> θ = 2·atan(s/F)</span> حيث <span className="font-mono">F = (b − t<sub>w</sub>)/2</span>.
+              (ثابت داخلي: t<sub>w</sub>={TW_CONST} مم)
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              <div className="md:col-span-2">
-                <label className="block font-semibold mb-1">عرض الجناح الكلي b (مم)</label>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="md:col-span-1">
+                <label className="block font-semibold mb-1">عرض الجناح b (مم)</label>
                 <input type="number" min="1" step="0.1" value={b}
                        onChange={e=>setB(parseFloat(e.target.value)||0)}
                        className="w-full p-2 border rounded"/>
-
-                <label className="block font-semibold mt-4 mb-1">سماكة العمود t<sub>w</sub> (مم)</label>
-                <input type="number" min="1" step="0.1" value={tw}
-                       onChange={e=>setTw(parseFloat(e.target.value)||0)}
-                       className="w-full p-2 border rounded"/>
-
-                <label className="block font-semibold mt-4 mb-1">سماكة الجناح t<sub>f</sub> (مم) – للعرض</label>
-                <input type="number" min="1" step="0.1" value={tf}
-                       onChange={e=>setTf(parseFloat(e.target.value)||0)}
-                       className="w-full p-2 border rounded"/>
-
-                <div className="grid grid-cols-2 gap-4 mt-4">
-                  <div>
-                    <label className="block font-semibold mb-1">قص اليسار s<sub>L</sub> (مم)</label>
-                    <input type="number" min="0" step="0.1" value={sLeft}
-                           onChange={e=>setSLeft(parseFloat(e.target.value)||0)}
-                           className="w-full p-2 border rounded"/>
-                  </div>
-                  <div>
-                    <label className="block font-semibold mb-1">قص اليمين s<sub>R</sub> (مم)</label>
-                    <input type="number" min="0" step="0.1" value={sRight}
-                           onChange={e=>setSRight(parseFloat(e.target.value)||0)}
-                           className="w-full p-2 border rounded"/>
-                  </div>
-                </div>
-
-                {/* نتائج مختصرة لكل جانب */}
-                <div className="mt-4 bg-gray-50 border rounded p-3">
-                  <div className="grid grid-cols-2 gap-3 text-center">
-                    <div className="p-2 rounded bg-slate-50 border">
-                      <div className="text-sm text-slate-600">F (بروز الجناح)</div>
-                      <div className="text-lg font-bold">{left.F.toFixed(2)} مم</div>
-                    </div>
-
-                    <div className="p-2 rounded bg-slate-50 border">
-                      <div className="text-sm text-slate-600">F (نفسه لليمين)</div>
-                      <div className="text-lg font-bold">{right.F.toFixed(2)} مم</div>
-                    </div>
-
-                    <div className="p-2 rounded bg-red-50 border border-red-200">
-                      <div className="text-sm text-red-600">s<sub>L</sub> (يسار)</div>
-                      <div className="text-lg font-bold text-red-700">{left.s.toFixed(2)} مم</div>
-                      <div className="text-xs text-gray-500 mt-1">θ<sub>L</sub> = {left.theta.toFixed(2)}°</div>
-                    </div>
-
-                    <div className="p-2 rounded bg-red-50 border border-red-200">
-                      <div className="text-sm text-red-600">s<sub>R</sub> (يمين)</div>
-                      <div className="text-lg font-bold text-red-700">{right.s.toFixed(2)} مم</div>
-                      <div className="text-xs text-gray-500 mt-1">θ<sub>R</sub> = {right.theta.toFixed(2)}°</div>
-                    </div>
-
-                    <div className="p-2 rounded bg-emerald-50 border border-emerald-200 col-span-2">
-                      <div className="text-sm text-emerald-700">المتبقي r في كل جهة</div>
-                      <div className="text-lg font-bold text-emerald-800">
-                        يسار: {left.r.toFixed(2)} مم — يمين: {right.r.toFixed(2)} مم
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </div>
-
-              {/* المعاينة */}
-              <div className="md:col-span-3">
-                <HHeadPreview b={b} tw={tw} tf={tf} sLeft={left.s} sRight={right.s}/>
+              <div className="md:col-span-2 flex items-end text-xs text-gray-500">
+                سماكة الجناح والعمود ثابتة داخليًا (لا تُعرض). t<sub>f</sub>={TF_CONST} مم، t<sub>w</sub>={TW_CONST} مم.
               </div>
             </div>
+
+            {/* إعدادات الجناح العلوي */}
+            <SideControls
+              title="إعدادات الجناح العلوي"
+              modeL={modeTopL} setModeL={setModeTopL}
+              modeR={modeTopR} setModeR={setModeTopR}
+              thetaL={thetaTopL} setThetaL={setThetaTopL}
+              thetaR={thetaTopR} setThetaR={setThetaTopR}
+              sL={sTopL} setSL={setSTopL}
+              sR={sTopR} setSR={setSTopR}
+            />
+
+            {/* نتائج ومعاينة الجناح العلوي */}
+            <div className="mt-3 bg-gray-50 p-3 rounded border">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
+                <div className="p-2 rounded bg-red-50 border">
+                  <div className="text-sm text-red-600">s<sub>L</sub> علوي (مم)</div>
+                  <div className="text-lg font-bold text-red-700">{topL.s.toFixed(2)}</div>
+                  <div className="text-xs text-gray-500 mt-1">θ<sub>L</sub> = {topL.theta.toFixed(2)}°</div>
+                </div>
+                <div className="p-2 rounded bg-red-50 border">
+                  <div className="text-sm text-red-600">s<sub>R</sub> علوي (مم)</div>
+                  <div className="text-lg font-bold text-red-700">{topR.s.toFixed(2)}</div>
+                  <div className="text-xs text-gray-500 mt-1">θ<sub>R</sub> = {topR.theta.toFixed(2)}°</div>
+                </div>
+                <div className="p-2 rounded bg-emerald-50 border">
+                  <div className="text-sm text-emerald-700">المتبقي r<sub>L</sub> (مم)</div>
+                  <div className="text-lg font-bold text-emerald-800">{topL.r.toFixed(2)}</div>
+                </div>
+                <div className="p-2 rounded bg-emerald-50 border">
+                  <div className="text-sm text-emerald-700">المتبقي r<sub>R</sub> (مم)</div>
+                  <div className="text-lg font-bold text-emerald-800">{topR.r.toFixed(2)}</div>
+                </div>
+              </div>
+              {warnTop && <div className="text-red-600 text-center text-sm mt-2">تحذير: مجموع قص اليسار+اليمين أكبر من b.</div>}
+
+              <div className="mt-3 flex justify-center">
+                <FlangePreview b={b} sLeft={topL.s} sRight={topR.s} label="معاينة الجناح العلوي"/>
+              </div>
+            </div>
+
+            {/* إعدادات الجناح السفلي */}
+            <div className="mt-6">
+              <SideControls
+                title="إعدادات الجناح السفلي"
+                modeL={modeBotL} setModeL={setModeBotL}
+                modeR={modeBotR} setModeR={setModeBotR}
+                thetaL={thetaBotL} setThetaL={setThetaBotL}
+                thetaR={thetaBotR} setThetaR={setThetaBotR}
+                sL={sBotL} setSL={setSBotL}
+                sR={sBotR} setSR={setSBotR}
+              />
+            </div>
+
+            {/* نتائج ومعاينة الجناح السفلي */}
+            <div className="mt-3 bg-gray-50 p-3 rounded border">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
+                <div className="p-2 rounded bg-red-50 border">
+                  <div className="text-sm text-red-600">s<sub>L</sub> سفلي (مم)</div>
+                  <div className="text-lg font-bold text-red-700">{botL.s.toFixed(2)}</div>
+                  <div className="text-xs text-gray-500 mt-1">θ<sub>L</sub> = {botL.theta.toFixed(2)}°</div>
+                </div>
+                <div className="p-2 rounded bg-red-50 border">
+                  <div className="text-sm text-red-600">s<sub>R</sub> سفلي (مم)</div>
+                  <div className="text-lg font-bold text-red-700">{botR.s.toFixed(2)}</div>
+                  <div className="text-xs text-gray-500 mt-1">θ<sub>R</sub> = {botR.theta.toFixed(2)}°</div>
+                </div>
+                <div className="p-2 rounded bg-emerald-50 border">
+                  <div className="text-sm text-emerald-700">المتبقي r<sub>L</sub> (مم)</div>
+                  <div className="text-lg font-bold text-emerald-800">{botL.r.toFixed(2)}</div>
+                </div>
+                <div className="p-2 rounded bg-emerald-50 border">
+                  <div className="text-sm text-emerald-700">المتبقي r<sub>R</sub> (مم)</div>
+                  <div className="text-lg font-bold text-emerald-800">{botR.r.toFixed(2)}</div>
+                </div>
+              </div>
+              {warnBot && <div className="text-red-600 text-center text-sm mt-2">تحذير: مجموع قص اليسار+اليمين أكبر من b.</div>}
+
+              <div className="mt-3 flex justify-center">
+                <FlangePreview b={b} sLeft={botL.s} sRight={botR.s} label="معاينة الجناح السفلي"/>
+              </div>
+            </div>
+
           </div>
         </div>
       );
