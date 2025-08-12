@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>H-Träger Winkelrechner</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-gray-100">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const {useState,useMemo,useEffect} = React;
+
+    function App(){
+      // أبعاد رسومية (يمكن تعديلها لاحقًا لتطابق المقاسات الرسمية)
+      const DIM = {
+        H: 180,      // الارتفاع الكلي للرأس (تقريبي مثل الصورة)
+        tf: 20,      // سماكة الجناح flange thickness
+        tw: 26,      // سماكة العمود web thickness (نصف لكل قطعة عند التجميع)
+        F: 90,       // بروز الجناح من العمود حتى الحافة (طرف واحد)
+        gap: 0       // لا نترك فجوة بين القطعتين بعد التجميع
+      };
+
+      const translations = {
+        de:{ title:"H-Träger Schneide- und Verbindungsrechner mit Gewicht",
+             hello:"Willkommen bei der Winkelrechner",
+             angle:"Verbindungswinkel (°):",
+             length:"Länge (m):",
+             calc:"Berechnen",
+             final:"Endform nach dem Zusammenbau" },
+        ar:{ title:"حاسبة قص وتجميع جناحي H مع الوزن",
+             hello:"مرحبًا بكم في حاسبة الزاوية",
+             angle:"زاوية التجميع (°):",
+             length:"طول القطعة (م):",
+             calc:"احسب",
+             final:"الشكل النهائي بعد التجميع" },
+        en:{ title:"H Beam Cut & Join Calculator",
+             hello:"Welcome to the Angle Calculator",
+             angle:"Joint Angle (°):",
+             length:"Length (m):",
+             calc:"Calculate",
+             final:"Final shape after assembly" }
+      };
+
+      const [lang,setLang]=useState("de");
+      const t=translations[lang];
+      const dir = lang==="ar"?"rtl":"ltr";
+      const align = lang==="ar"?"text-right":"text-left";
+
+      const [jointAngle,setJointAngle]=useState(16); // مثال مثل الصورة
+      const [length,setLength]=useState(1);
+
+      // دالة حساب نقاط القطع للجناح العلوي فقط لكل قطعة
+      function computeCutPoints(alphaDeg, side){
+        // side: "left" يقطع الجناح العلوي الأيمن لتلك القطعة (كما في الواقع)
+        //       "right" يقطع الجناح العلوي الأيسر لتلك القطعة
+        // نظام الرسم:
+        // نضع مركز التجميع في cx,cy. كل قطعة لها نصف عمود.
+        const W = 420, Hsvg = 260;
+        const cx = W/2, cy = 90;               // مركز التقاطع تقريبًا (أعلى قليلًا)
+        const {H,tf,tw,F} = DIM;
+        const yTop = cy;                        // أعلى الجناحين
+        const yBot = cy + (H - tf - 40);       // موضع الجناح السفلي (شكلي)
+        const webHalf = tw/2;
+
+        // حدود كل قطعة بالنسبة للمركز
+        const leftWebInner = cx - webHalf;     // نهاية العمود لقطعة اليسار عند المركز
+        const leftWebOuter = leftWebInner - webHalf; // بداية العمود (تقريب بصري)
+        const rightWebInner = cx + webHalf;
+        const rightWebOuter = rightWebInner + webHalf;
+
+        // الجناح العلوي لليسار: من (leftWebInner - F) إلى (leftWebInner) بارتفاع tf
+        // الجناح العلوي لليمين: من (rightWebInner) إلى (rightWebInner + F)
+        const alpha = (alphaDeg/2) * Math.PI/180; // نصف الزاوية لكل وجه
+        const m = Math.tan(alpha);                // ميل الوجه نسبة عمودية/أفقية
+
+        if(side==="left"){
+          const x0 = leftWebInner;     // نقطة بدء القطع عند التقاء العمود بالجناح
+          const y0 = yTop;             // أعلى الجناح العلوي
+          // معادلة الوجه: يتجه لليسار وإلى الأسفل: y = y0 + m*(x0 - x)
+          const y_at_edge = y0 + m*(F);           // عند x = x0 - F
+          if(y_at_edge <= y0 + tf){
+            // يقطع عند الحافة الخارجية للجناح (لا يصل لأسفل الجناح)
+            return {
+              top:  {x:x0,       y:y0},
+              edge: {x:x0 - F,   y:y_at_edge},
+              baseY: y0+tf,
+              webInner:x0,
+              webOuter:leftWebOuter,
+              flangeStart:x0 - F,
+              flangeEnd:x0
+            };
+          }else{
+            // يصل لأسفل الجناح قبل الحافة الخارجية
+            const dx = (tf)/m; // المسافة الأفقية اللازمة للوصول لأسفل الجناح
+            return {
+              top:  {x:x0,       y:y0},
+              edge: {x:x0 - dx,  y:y0+tf}, // يتقاطع مع أسفل الجناح
+              baseY: y0+tf,
+              webInner:x0,
+              webOuter:leftWebOuter,
+              flangeStart:x0 - F,
+              flangeEnd:x0
+            };
+          }
+        }else{ // right
+          const x0 = rightWebInner;
+          const y0 = yTop;
+          // يتجه لليمين وإلى الأسفل: y = y0 + m*(x - x0)
+          const y_at_edge = y0 + m*(F);
+          if(y_at_edge <= y0 + tf){
+            return {
+              top:  {x:x0,       y:y0},
+              edge: {x:x0 + F,   y:y_at_edge},
+              baseY: y0+tf,
+              webInner:x0,
+              webOuter:rightWebOuter,
+              flangeStart:x0,
+              flangeEnd:x0 + F
+            };
+          }else{
+            const dx = (tf)/m;
+            return {
+              top:  {x:x0,       y:y0},
+              edge: {x:x0 + dx,  y:y0+tf},
+              baseY: y0+tf,
+              webInner:x0,
+              webOuter:rightWebOuter,
+              flangeStart:x0,
+              flangeEnd:x0 + F
+            };
+          }
+        }
+      }
+
+      function AssembledHead({angle}){
+        const W=420, H=260;
+        const {tf,tw,F}=DIM;
+        const L = computeCutPoints(angle,"left");
+        const R = computeCutPoints(angle,"right");
+
+        // ألوان
+        const cLeft  = {fill:"#4f46e5", stroke:"#3730a3"};
+        const cRight = {fill:"#3b82f6", stroke:"#2563eb"};
+
+        // بناء أشكال القطعتين:
+        // كل قطعة: عمود + جناح علوي مقصوص + جناح سفلي كامل
+        const yTop = L.top.y, yTopBase = L.baseY, yBotTop = yTop + 100, yBotBase = yBotTop + tf;
+
+        return (
+          <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="bg-white rounded-lg shadow-md">
+            {/* شريط ترسيم الزاوية */}
+            <line x1={L.top.x-40} y1={yTop} x2={R.top.x+40} y2={yTop} stroke="#ef4444" strokeWidth="2" strokeDasharray="4"/>
+            <text x={(L.top.x+R.top.x)/2} y={yTop-10} fontSize="12" fill="#ef4444" textAnchor="middle">
+              {angle}°
+            </text>
+
+            {/* قطعة اليسار */}
+            {/* الجناح العلوي (مضلع مقصوص بخط القطع) */}
+            <polygon
+              points={`
+                ${L.flangeStart},${yTop}
+                ${L.top.x},${yTop}
+                ${L.edge.x},${L.edge.y}
+                ${L.flangeStart},${L.baseY}
+              `}
+              fill={cLeft.fill} opacity="0.9" stroke={cLeft.stroke} strokeWidth="2"
+            />
+            {/* العمود لليسار */}
+            <rect x={L.webOuter} y={yTop} width={L.webInner - L.webOuter} height={yBotBase - yTop} fill="#1e40af" opacity="0.75"/>
+            {/* الجناح السفلي الكامل */}
+            <rect x={L.flangeStart} y={yBotTop} width={F} height={tf} fill={cLeft.fill} opacity="0.9" stroke={cLeft.stroke} strokeWidth="2"/>
+
+            {/* قطعة اليمين */}
+            {/* الجناح العلوي (مضلع مقصوص بخط القطع) */}
+            <polygon
+              points={`
+                ${R.top.x},${yTop}
+                ${R.flangeEnd},${yTop}
+                ${R.flangeEnd},${R.baseY}
+                ${R.edge.x},${R.edge.y}
+              `}
+              fill={cRight.fill} opacity="0.9" stroke={cRight.stroke} strokeWidth="2"
+            />
+            {/* العمود لليمين */}
+            <rect x={R.webInner} y={yTop} width={R.webOuter - R.webInner} height={yBotBase - yTop} fill="#1e40af" opacity="0.75"/>
+            {/* الجناح السفلي الكامل */}
+            <rect x={R.flangeStart} y={yBotTop} width={F} height={tf} fill={cRight.fill} opacity="0.9" stroke={cRight.stroke} strokeWidth="2"/>
+
+            {/* خطا القطع المتقابلان يلتقيان في المركز (تجميع من مكان القطع) */}
+            <line x1={L.top.x} y1={yTop} x2={L.edge.x} y2={L.edge.y} stroke="#111827" strokeWidth="2"/>
+            <line x1={R.top.x} y1={yTop} x2={R.edge.x} y2={R.edge.y} stroke="#111827" strokeWidth="2"/>
+          </svg>
+        );
+      }
+
+      return (
+        <div dir={dir} className={`min-h-screen p-6 ${align}`}>
+          <div className="text-center bg-blue-100 text-blue-800 py-3 rounded-lg mb-4 text-lg font-semibold">
+            Willkommen bei der Winkelrechner
+          </div>
+
+          <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-6">
+            <div className="flex justify-end mb-4">
+              <select value={lang} onChange={(e)=>setLang(e.target.value)} className="p-2 border rounded">
+                <option value="de">Deutsch</option>
+                <option value="ar">العربية</option>
+                <option value="en">English</option>
+              </select>
+            </div>
+
+            <h1 className="text-2xl font-bold mb-4 text-center">{t.title}</h1>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block font-semibold mb-2">{t.angle}</label>
+                <input type="range" min="5" max="60" value={jointAngle}
+                       onChange={(e)=>setJointAngle(parseInt(e.target.value))}
+                       className="w-full"/>
+                <div className="text-center font-bold mt-2">{jointAngle}°</div>
+              </div>
+
+              <div>
+                <label className="block font-semibold mb-2">{t.length}</label>
+                <input type="number" min="0.1" step="0.1" value={length}
+                       onChange={(e)=>setLength(parseFloat(e.target.value))}
+                       className="w-full p-2 border rounded"/>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <h2 className="text-lg font-bold mb-3 text-center">{t.final}</h2>
+              <AssembledHead angle={jointAngle}/>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App/>);
+  </script>
+</body>
+</html>
