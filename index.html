@@ -7,26 +7,27 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100" dir="rtl">
-  <!-- Splash / Welcome (German default) -->
+  <!-- Splash / Willkommen (German default) -->
   <div id="splash" class="fixed inset-0 bg-white flex items-center justify-center z-50">
     <div class="max-w-xl mx-auto text-center p-8">
       <h1 class="text-3xl font-bold mb-3">Willkommen zur Winkelberechnung!</h1>
       <p class="text-gray-600 mb-6">
         Dieses Tool berechnet den Zusammenbauwinkel aus dem <b>Unterschied der Abtragslängen</b> (Δs) am oberen und unteren Flansch.
       </p>
-      <button id="startBtn" class="px-6 py-3 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition">
+      <button id="startBtn" class="px-6 py-3 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow transition">
         Starten
       </button>
     </div>
   </div>
 
   <div class="min-h-screen p-6">
-    <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-6 relative">
+    <div class="max-w-4xl mx-auto bg-white rounded-2xl shadow-lg p-6 relative">
       <!-- Language switcher -->
       <div class="absolute top-4 left-4">
-        <select id="lang" class="p-2 border rounded">
+        <select id="lang" class="p-2 border rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
           <option value="de" selected>Deutsch</option>
           <option value="en">English</option>
+          <option value="ar">العربية</option>
         </select>
       </div>
 
@@ -41,22 +42,25 @@
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         <div>
           <label id="lblType" class="block font-semibold mb-1">Profiltyp</label>
-          <select id="secType" class="w-full p-2 border rounded">
+          <select id="secType" class="w-full p-2.5 border rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
             <option value="HEA">HEA</option>
             <option value="HEB" selected>HEB</option>
             <option value="HEM">HEM</option>
           </select>
+          <div id="helperType" class="text-xs text-gray-500 mt-1">EU-Standardprofile</div>
         </div>
         <div>
           <label id="lblSize" class="block font-semibold mb-1">Größe</label>
-          <select id="secSize" class="w-full p-2 border rounded"></select>
+          <select id="secSize" class="w-full p-2.5 border rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"></select>
+          <div id="helperSize" class="text-xs text-gray-500 mt-1">Wähle die Nenngröße</div>
         </div>
 
         <!-- b (locked) -->
         <div>
           <label id="lblB" class="block font-semibold mb-1">Flanschbreite b (mm)</label>
           <input id="b" type="number" min="1" step="0.1" value="180"
-                 class="w-full p-2 border rounded bg-gray-100 text-gray-600" readonly />
+                 class="w-full p-2.5 border rounded-xl bg-gray-100 text-gray-600 shadow-sm"
+                 readonly />
           <div id="bHint" class="text-xs text-gray-500 mt-1">
             Aus EU-Tabelle übernommen (Read-only).
           </div>
@@ -64,47 +68,49 @@
       </div>
 
       <!-- F / tw / tf -->
-      <div class="bg-slate-50 border rounded p-3 mb-4 grid grid-cols-1 md:grid-cols-3 gap-3 text-center">
-        <div>
+      <div class="bg-slate-50 border rounded-xl p-3 mb-4 grid grid-cols-1 md:grid-cols-3 gap-3 text-center">
+        <div class="rounded-lg p-2 bg-white border">
           <div id="lblTw" class="text-sm text-slate-600">t<sub>w</sub> (intern laut Tabelle)</div>
           <div id="twVal" class="text-lg font-bold">—</div>
         </div>
-        <div>
+        <div class="rounded-lg p-2 bg-white border">
           <div id="lblTf" class="text-sm text-slate-600">t<sub>f</sub> (nur Anzeige)</div>
           <div id="tfVal" class="text-lg font-bold">—</div>
         </div>
-        <div>
+        <div class="rounded-lg p-2 bg-white border">
           <div id="lblF" class="text-sm text-slate-600">F = (b − t<sub>w</sub>)/2</div>
           <div id="FVal" class="text-lg font-bold">—</div>
         </div>
       </div>
 
       <!-- s_top -->
-      <div class="mb-3 p-3 border rounded">
+      <div class="mb-3 p-3 border rounded-xl">
         <div class="flex items-center justify-between mb-1">
           <label id="lblStop" class="font-semibold">Abtrag oberer Flansch s<sub>top</sub> (mm)</label>
           <div class="text-sm text-gray-700"><span id="sTopVal">0.00</span> mm</div>
         </div>
-        <input id="sTop" type="range" min="0" max="100" step="0.1" value="0" class="w-full"/>
+        <input id="sTop" type="range" min="0" max="100" step="0.1" value="0"
+               class="w-full accent-indigo-600"/>
         <div class="text-xs text-gray-500 mt-1">
           <span id="lblRtop">Rest r<sub>top</sub></span> = <span id="rTop">—</span> mm
         </div>
       </div>
 
       <!-- s_bottom -->
-      <div class="mb-5 p-3 border rounded">
+      <div class="mb-5 p-3 border rounded-xl">
         <div class="flex items-center justify-between mb-1">
           <label id="lblSbot" class="font-semibold">Abtrag unterer Flansch s<sub>bottom</sub> (mm)</label>
           <div class="text-sm text-gray-700"><span id="sBottomVal">0.00</span> mm</div>
         </div>
-        <input id="sBottom" type="range" min="0" max="100" step="0.1" value="0" class="w-full"/>
+        <input id="sBottom" type="range" min="0" max="100" step="0.1" value="0"
+               class="w-full accent-indigo-600"/>
         <div class="text-xs text-gray-500 mt-1">
           <span id="lblRbot">Rest r<sub>bottom</sub></span> = <span id="rBottom">—</span> mm
         </div>
       </div>
 
       <!-- Winkel -->
-      <div class="bg-indigo-50 border border-indigo-200 rounded p-4 text-center mb-5">
+      <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-4 text-center mb-5">
         <div id="lblTheta" class="text-sm text-indigo-700">Ergebniswinkel</div>
         <div id="thetaOut" class="text-4xl font-extrabold text-indigo-800">0.00°</div>
         <div id="thetaNote" class="text-xs text-gray-600 mt-1">
@@ -112,8 +118,8 @@
         </div>
       </div>
 
-      <!-- Vorschau (klassisch: zwei H-Köpfe + Winkel in der Mitte) -->
-      <div class="bg-white border rounded p-3">
+      <!-- Vorschau (klassisch) -->
+      <div class="bg-white border rounded-xl p-3">
         <svg id="view" width="100%" viewBox="0 0 900 330" class="block mx-auto">
           <!-- dynamic -->
         </svg>
@@ -122,13 +128,15 @@
   </div>
 
   <script>
-    // ===== i18n (de/en) =====
+    // ===== i18n (de/en/ar) =====
     const T = {
       de: {
         title: "Winkel aus Δs (klassische Vorschau)",
         subtitle: "θ = 2 · atan(Δs / F), wobei Δs = s_top − s_bottom und F = (b − t_w)/2.",
         type: "Profiltyp",
+        helperType: "EU-Standardprofile",
         size: "Größe",
+        helperSize: "Wähle die Nenngröße",
         b: "Flanschbreite b (mm)",
         bHint: "Aus EU-Tabelle übernommen (Read-only).",
         tw: "t_w (intern laut Tabelle)",
@@ -145,7 +153,9 @@
         title: "Angle from Δs (classic preview)",
         subtitle: "θ = 2 · atan(Δs / F), where Δs = s_top − s_bottom and F = (b − t_w)/2.",
         type: "Section type",
+        helperType: "EU standard profiles",
         size: "Size",
+        helperSize: "Choose nominal size",
         b: "Flange width b (mm)",
         bHint: "Filled from EU table (read-only).",
         tw: "t_w (internal from table)",
@@ -157,6 +167,25 @@
         rBottom: "Remaining r_bottom",
         theta: "Resulting angle",
         thetaNote: "If s_top = s_bottom, then θ = 0°."
+      },
+      ar: {
+        title: "زاوية التجميع من Δs (المعاينة الكلاسيكية)",
+        subtitle: "θ = 2 · atan(Δs / F)، حيث Δs = s_top − s_bottom و F = (b − t_w)/2.",
+        type: "نوع المقطع",
+        helperType: "مقاطع قياسية أوروبية",
+        size: "المقاس",
+        helperSize: "اختر المقاس الاسمي",
+        b: "عرض الجناح b (مم)",
+        bHint: "تعبئة من الجدول الأوروبي (قراءة فقط).",
+        tw: "t_w (ثابت حسب الجدول)",
+        tf: "t_f (للعرض فقط)",
+        F: "F = (b − t_w)/2",
+        stop: "قص الجناح العلوي s_top (مم)",
+        sBot: "قص الجناح السفلي s_bottom (مم)",
+        rTop: "المتبقي r_top",
+        rBottom: "المتبقي r_bottom",
+        theta: "زاوية التجميع الناتجة",
+        thetaNote: "إذا كان s_top = s_bottom فستكون θ = 0°."
       }
     };
 
@@ -165,11 +194,14 @@
 
     function applyLang() {
       const L = T[langSel.value] || T.de;
+
       $("title").textContent = L.title;
       $("subtitle").innerHTML = L.subtitle;
 
       $("lblType").textContent = L.type;
+      $("helperType").textContent = L.helperType;
       $("lblSize").textContent = L.size;
+      $("helperSize").textContent = L.helperSize;
 
       $("lblB").textContent = L.b;
       $("bHint").textContent = L.bHint;
@@ -186,6 +218,11 @@
 
       $("lblTheta").textContent = L.theta;
       $("thetaNote").textContent = L.thetaNote;
+
+      // اتجاه الصفحة: نحافظ على RTL كما هو لتجنّب تغيير الشكل.
+      // (لو تحب نغيّر LTR للإنجليزية/الألمانية، قُل لي وغيّرها بسطر واحد)
+      // document.body.dir = (langSel.value === 'ar') ? 'rtl' : 'ltr';
+      // document.documentElement.lang = langSel.value;
     }
 
     // ===== EU Sections (b, tw, tf) =====
@@ -251,9 +288,7 @@
     });
 
     // لغة
-    langSel.addEventListener("change", () => {
-      applyLang();
-    });
+    langSel.addEventListener("change", applyLang);
 
     // ملء المقاسات
     function populateSizes(){
@@ -370,17 +405,17 @@
         el.textContent=t; svg.appendChild(el);
       }
 
-      // links
+      // اليسار
       rect(L_left, topY, flangeLenPx, tfPx, '#e5e7eb', '#94a3b8');
       rect(L_left, topY+webH+tfPx, flangeLenPx, tfPx, '#e5e7eb', '#94a3b8');
       rect(L_webX, topY, twPx, webH+tfPx, '#334155');
 
-      // rechts
+      // اليمين
       rect(R_left, topY, flangeLenPx, tfPx, '#e5e7eb', '#94a3b8');
       rect(R_left, topY+webH+tfPx, flangeLenPx, tfPx, '#e5e7eb', '#94a3b8');
       rect(R_webX, topY, twPx, webH+tfPx, '#334155');
 
-      // Abträge (rot) von der Füge-Seite
+      // القص (شرائط حمراء)
       const sTopPx = Math.min(flangeLenPx, Math.max(0, sTop*scale));
       const sBotPx = Math.min(flangeLenPx, Math.max(0, sBottom*scale));
 
@@ -393,13 +428,13 @@
         rect(R_left,           topY+webH+tfPx, sBotPx, tfPx, '#ef4444');
       }
 
-      // b
+      // b للقطعتين
       line(L_left, topY-16, L_right, topY-16, '#94a3b8', 1.2);
       text((L_left+L_right)/2, topY-20, `b = ${b} mm`, '11', '#334155', 'middle');
       line(R_left, topY-16, R_right, topY-16, '#94a3b8', 1.2);
       text((R_left+R_right)/2, topY-20, `b = ${b} mm`, '11', '#334155', 'middle');
 
-      // Winkel zentriert
+      // الزاوية في المنتصف
       const thetaTxt = $("thetaOut").textContent.replace(/[^\d\.\+\-]/g,'');
       line(L_right, topY-6, R_left, topY-6, '#ef4444', 2, '6 6');
       text(450, topY + webH/2 + tfPx/2 + 18, `${thetaTxt}°`, '56', '#ef4444', 'middle');
@@ -409,7 +444,6 @@
       applyLang(); // default de
       populateSizes();
       applySection();
-      // events
       $("secType").addEventListener('change', ()=>{ populateSizes(); applySection(); });
       $("secSize").addEventListener('change', applySection);
       ['input','change'].forEach(evt=>{
